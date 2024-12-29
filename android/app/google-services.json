@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "790754849404",
+    "project_id": "classify-bc72a",
+    "storage_bucket": "classify-bc72a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790754849404:android:3a8478926f79d5fc414ff9",
+        "android_client_info": {
+          "package_name": "com.pitta.classify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAA3vdqgEarFth9OGupDvkICIv8iPyxCUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
