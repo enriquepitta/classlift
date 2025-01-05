@@ -36,6 +36,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  wolt_modal_sheet: ^0.10.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +66,16 @@ flutter:
     - assets/icons/
     - assets/images/poliplanner_image.svg
     - assets/lottie/classify_splash.json
+    - assets/lottie/spinner_lottie.json
+    - assets/lottie/spinner_lottie_2.json
+    - assets/lottie/spinner_3.json
+    - assets/lottie/spinner_4.json
+    - assets/lottie/email_verification_lottie.json
+    - assets/lottie/Caution.json
+    - assets/lottie/close.json
+    - assets/lottie/successful_green.json
+    - assets/lottie/successful_blue.json
+    - assets/lottie/success_man.json
   fonts:
     - family: AnekLatin
       fonts:

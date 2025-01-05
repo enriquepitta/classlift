@@ -2,15 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:classify/components/background_gradient.dart';
 
-class VerifyEmailPage extends StatefulWidget {
+class VerifyEmailScreen extends StatefulWidget {
   final String email; // Recibimos el correo electrónico como parámetro
-  const VerifyEmailPage({super.key, required this.email});
+  const VerifyEmailScreen({super.key, required this.email});
 
   @override
-  _VerifyEmailPageState createState() => _VerifyEmailPageState();
+  _VerifyEmailScreenState createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailPageState extends State<VerifyEmailPage> {
+class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   final TextEditingController _otpController1 = TextEditingController();
   final TextEditingController _otpController2 = TextEditingController();
   final TextEditingController _otpController3 = TextEditingController();
@@ -277,3 +277,4 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
     );
   }
 }
+
