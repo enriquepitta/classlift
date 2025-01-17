@@ -76,6 +76,7 @@ flutter:
     - assets/lottie/successful_green.json
     - assets/lottie/successful_blue.json
     - assets/lottie/success_man.json
+    - assets/lottie/classlift_splash.json
   fonts:
     - family: AnekLatin
       fonts:

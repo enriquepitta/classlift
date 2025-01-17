@@ -1,7 +1,7 @@
+import 'package:classify/core/routes/app_routes.dart';
+import 'package:classify/screens/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'login_page.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,37 +11,16 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  String _statusMessage = 'Verificando Firebase...';
   late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
-
     // Inicializar el controlador de animación
-    _animationController = AnimationController(vsync: this);
-
-    // Verificar la inicialización de Firebase
-    // _checkFirebaseInitialization();
-  }
-
-  void _checkFirebaseInitialization() async {
-    try {
-      // Verifica si Firebase está inicializado
-      if (Firebase.apps.isNotEmpty) {
-        setState(() {
-          _statusMessage = 'Firebase está inicializado';
-        });
-      } else {
-        setState(() {
-          _statusMessage = 'Firebase no está inicializado';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _statusMessage = 'Error al verificar Firebase: $e';
-      });
-    }
+    _animationController = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 4),
+    );
   }
 
   void _navigateToNextScreen() {
@@ -78,7 +57,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Lottie.asset(
-                'assets/lottie/classify_splash.json',
+                'assets/lottie/classlift_splash.json',
                 width: 150,
                 height: 150,
                 fit: BoxFit.contain,
@@ -98,15 +77,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 },
               ),
               const SizedBox(height: 20),
-              // Text(
-              //   _statusMessage,
-              //   textAlign: TextAlign.center,
-              //   style: const TextStyle(
-              //     fontSize: 16,
-              //     color: Colors.white,
-              //     fontWeight: FontWeight.w600,
-              //   ),
-              // ),
             ],
           ),
         ),
