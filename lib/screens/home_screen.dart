@@ -1,70 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
+import 'package:classify/utils/classlift_colors.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() =>
+      _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  CalendarFormat _calendarFormat = CalendarFormat.week;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDay = DateTime.now();
+    Intl.defaultLocale = 'es_ES'; // Configura el idioma en español
+  }
+
+  void _toggleCalendarFormat() {
+    setState(() {
+      _calendarFormat = _calendarFormat == CalendarFormat.week
+          ? CalendarFormat.month
+          : CalendarFormat.week;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inicio'),
-        backgroundColor: Colors.deepPurple,
-        centerTitle: true,
+        elevation: 0,
+        title: const Text(
+          "Horario de Clases",
+          style: TextStyle(
+            color: ClassliftColors.SecondaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: ClassliftColors.PrimaryColor,
+        actions: [
+          // IconButton(
+          //   icon: Icon(Icons.today, color: ClassliftColors.White),
+          //   onPressed: () {
+          //     setState(() {
+          //       _selectedDay = DateTime.now();
+          //       _focusedDay = DateTime.now();
+          //     });
+          //   },
+          // ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [ClassliftColors.White, ClassliftColors.BackgroundColor],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '¡Bienvenido!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+            // Calendario
+            CalendarWidget(
+              focusedDay: _focusedDay,
+              selectedDay: _selectedDay,
+              calendarFormat: _calendarFormat,
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+              },
+              onFormatChanged: (format) {
+                setState(() {
+                  _calendarFormat = format;
+                });
+              },
+              onPageChanged: (focusedDay) {
+                setState(() {
+                  _focusedDay = focusedDay;
+                });
+              },
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Selecciona una opción para comenzar:',
-              style: TextStyle(fontSize: 16),
+            // Footer interactivo
+            CalendarFooter(
+              calendarFormat: _calendarFormat,
+              onTap: _toggleCalendarFormat,
             ),
-            const SizedBox(height: 20),
+            // Día seleccionado
             Expanded(
-              child: ListView(
-                children: [
-                  _buildFeatureTile(
-                    icon: Icons.calendar_today,
-                    title: 'Calendario Académico',
-                    onTap: () {
-                      // Navega a la pantalla de calendario
-                      print('Calendario académico');
-                    },
+              child: Center(
+                child: Text(
+                  _selectedDay != null
+                      ? 'Día seleccionado: ${DateFormat.yMMMMd('es_ES').format(_selectedDay!)}'
+                      : 'Selecciona un día',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: ClassliftColors.TextColor,
                   ),
-                  _buildFeatureTile(
-                    icon: Icons.schedule,
-                    title: 'Horario de Clases',
-                    onTap: () {
-                      // Navega a la pantalla de horario
-                      print('Horario de clases');
-                    },
-                  ),
-                  _buildFeatureTile(
-                    icon: Icons.assignment,
-                    title: 'Recordatorios de Tareas',
-                    onTap: () {
-                      // Navega a la pantalla de recordatorios
-                      print('Recordatorios de tareas');
-                    },
-                  ),
-                  _buildFeatureTile(
-                    icon: Icons.event_note,
-                    title: 'Exámenes',
-                    onTap: () {
-                      // Navega a la pantalla de exámenes
-                      print('Exámenes');
-                    },
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -72,17 +110,152 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildFeatureTile(
-      {required IconData icon, required String title, required VoidCallback onTap}) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.deepPurple),
-        title: Text(title),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
+class CalendarWidget extends StatelessWidget {
+  final DateTime focusedDay;
+  final DateTime? selectedDay;
+  final CalendarFormat calendarFormat;
+  final Function(DateTime, DateTime) onDaySelected;
+  final Function(CalendarFormat) onFormatChanged;
+  final Function(DateTime) onPageChanged;
+
+  CalendarWidget({
+    required this.focusedDay,
+    required this.selectedDay,
+    required this.calendarFormat,
+    required this.onDaySelected,
+    required this.onFormatChanged,
+    required this.onPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        gradient: ClassliftColors.primaryGradient,
+      ),
+      child: TableCalendar(
+        locale: 'es_ES',
+        focusedDay: focusedDay,
+        firstDay: DateTime.utc(2020, 1, 1),
+        lastDay: DateTime.utc(2030, 12, 31),
+        calendarFormat: calendarFormat,
+        selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+        onDaySelected: onDaySelected,
+        onFormatChanged: onFormatChanged,
+        onPageChanged: onPageChanged,
+        daysOfWeekHeight: 40,
+        calendarStyle: CalendarStyle(
+          weekendTextStyle: TextStyle(
+            color: ClassliftColors.White,
+            fontWeight: FontWeight.bold,
+          ),
+          defaultTextStyle: TextStyle(
+            color: ClassliftColors.White,
+            fontWeight: FontWeight.bold,
+          ),
+          todayTextStyle: TextStyle(
+            color: ClassliftColors.SecondaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+          todayDecoration: BoxDecoration(),
+          selectedDecoration: BoxDecoration(
+            gradient: ClassliftColors.secondaryGradient,
+            shape: BoxShape.circle,
+          ),
+          selectedTextStyle: TextStyle(
+            color: ClassliftColors.PrimaryColor,
+            fontWeight: FontWeight.bold,
+          ),
+          outsideTextStyle: TextStyle(
+            color: Colors.white54,
+          ),
+        ),
+        headerStyle: HeaderStyle(
+          titleCentered: true,
+          formatButtonVisible: false,
+          titleTextFormatter: (date, locale) {
+            String formattedDate = DateFormat('MMMM', 'es_ES').format(date);
+            return formattedDate[0].toUpperCase() + formattedDate.substring(1);
+          },
+          titleTextStyle: TextStyle(
+            color: ClassliftColors.White,
+            fontSize: 18,
+            fontWeight: FontWeight.normal,
+          ),
+          leftChevronIcon: Icon(
+            Icons.chevron_left,
+            color: ClassliftColors.White,
+            size: 24,
+          ),
+          rightChevronIcon: Icon(
+            Icons.chevron_right,
+            color: ClassliftColors.White,
+            size: 24,
+          ),
+        ),
+        daysOfWeekStyle: DaysOfWeekStyle(
+          dowTextFormatter: (date, locale) =>
+              DateFormat.E(locale).format(date)[0].toUpperCase(),
+          weekdayStyle: TextStyle(
+            color: ClassliftColors.White,
+            fontWeight: FontWeight.bold,
+          ),
+          weekendStyle: TextStyle(
+            color: ClassliftColors.White,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        calendarBuilders: CalendarBuilders(
+          dowBuilder: (context, day) {
+            final String dayText = DateFormat.E('es_ES').format(day)[0].toUpperCase();
+            final bool isToday = isSameDay(day, DateTime.now());
+
+            return Center(
+              child: Text(
+                dayText,
+                style: TextStyle(
+                  color: isToday ? ClassliftColors.SecondaryColor : ClassliftColors.White,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class CalendarFooter extends StatelessWidget {
+  final CalendarFormat calendarFormat;
+  final VoidCallback onTap;
+
+  CalendarFooter({
+    required this.calendarFormat,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: ClassliftColors.primaryGradient,
+        ),
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: Icon(
+            calendarFormat == CalendarFormat.week
+                ? Icons.expand_more
+                : Icons.expand_less,
+            color: ClassliftColors.White,
+            size: 24,
+          ),
+        ),
       ),
     );
   }
