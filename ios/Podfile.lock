@@ -55,12 +55,16 @@ PODS:
   - GTMSessionFetcher/Core (4.1.0)
   - lottie-ios (4.2.0)
   - RecaptchaInterop (100.0.0)
+  - shared_preferences_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
 
 DEPENDENCIES:
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
   - lottie-ios (~> 4.2.0)
+  - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
 
 SPEC REPOS:
   trunk:
@@ -83,6 +87,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/firebase_core/ios"
   Flutter:
     :path: Flutter
+  shared_preferences_foundation:
+    :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
 
 SPEC CHECKSUMS:
   Firebase: cf1b19f21410b029b6786a54e9764a0cacad3c99
@@ -99,6 +105,7 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 923b710231ad3d6f3f0495ac1ced35421e07d9a6
   lottie-ios: 809ecf2d460ed650a6aed7aa88b2ec45fab4779c
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
 
 PODFILE CHECKSUM: 3d74eed5c7f252e23cea7e9c4cc1ded325c9ebc6
 

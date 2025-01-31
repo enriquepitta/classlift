@@ -1,10 +1,11 @@
-import 'package:classify/core/routes/app_routes.dart';
+import 'package:classify/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/splash_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es_ES', null); // Cambia 'es_ES' al idioma que desees
 
   // Se inicializa firebase
   await Firebase.initializeApp();
@@ -23,7 +24,7 @@ class Classify extends StatelessWidget {
         fontFamily: 'Poppins',
         useMaterial3: true,
       ),
-      home: const SplashScreen(),
+      home: HomeScreen(),
     );
   }
 }
