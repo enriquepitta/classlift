@@ -1,4 +1,3 @@
-import 'package:classlift/core/routes/app_routes.dart';
 import 'package:classlift/screens/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';

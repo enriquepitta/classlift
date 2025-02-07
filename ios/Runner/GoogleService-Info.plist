@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyDxoVRiCqUjCatoUUHPA92i458NkeWyYUA</string>
+	<string>AIzaSyAiwmV4rgkAeDwIIDzGhiXh91qMlk0duIo</string>
 	<key>GCM_SENDER_ID</key>
-	<string>790754849404</string>
+	<string>194972210751</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.pitta.classify</string>
+	<string>com.pitta.classlift</string>
 	<key>PROJECT_ID</key>
-	<string>classify-bc72a</string>
+	<string>claift</string>
 	<key>STORAGE_BUCKET</key>
-	<string>classify-bc72a.firebasestorage.app</string>
+	<string>claift.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:790754849404:ios:360a7c2fb44c4657414ff9</string>
+	<string>1:194972210751:ios:c13b3f8efdf3b5a2c60a8a</string>
 </dict>
 </plist>

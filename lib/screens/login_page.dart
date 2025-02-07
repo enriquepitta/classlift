@@ -273,9 +273,9 @@ class _LoginPageState extends State<LoginPage> {
                               onPressed: () async {
 
                                 // For testing
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(builder: (context) => VerificationScreen()),
-                                );
+                                // Navigator.of(context).pushReplacement(
+                                //   MaterialPageRoute(builder: (context) => VerificationScreen()),
+                                // );
 
                                 // Validar el formulario según corresponda
                                 if (_isRegistering
