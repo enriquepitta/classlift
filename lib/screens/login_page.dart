@@ -1,11 +1,9 @@
-import 'package:classify/core/routes/app_routes.dart';
-import 'package:classify/screens/forgot_password_screen.dart';
-import 'package:classify/screens/home_screen.dart';
+import 'package:classlift/screens/forgot_password_screen.dart';
+import 'package:classlift/screens/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:classify/components/background_gradient.dart';
-import 'package:classify/components/textfield_label.dart';
-import 'package:classify/components/sign_button_row.dart';
-import 'package:classify/core/routes/app_routes.dart';
+import 'package:classlift/components/background_gradient.dart';
+import 'package:classlift/components/textfield_label.dart';
+import 'package:classlift/components/sign_button_row.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
 import 'verification_email_screen.dart';
@@ -274,9 +272,10 @@ class _LoginPageState extends State<LoginPage> {
                             child: ElevatedButton(
                               onPressed: () async {
 
-                                // Navigator.of(context).pushReplacement(
-                                //   MaterialPageRoute(builder: (context) => VerificationScreen()),
-                                // );
+                                // For testing
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (context) => VerificationScreen()),
+                                );
 
                                 // Validar el formulario según corresponda
                                 if (_isRegistering

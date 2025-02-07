@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:classify/screens/success_signup_screen.dart';
+import 'package:classlift/screens/success_signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
-import 'package:classify/components/background_gradient.dart';
+import 'package:classlift/components/background_gradient.dart';
 import 'forgot_password_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
@@ -134,7 +134,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ElevatedButton(
-                      onPressed: _isVerified
+                      onPressed: true
                           ? () {
                         Navigator.pushReplacement(
                           context,

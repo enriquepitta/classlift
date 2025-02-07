@@ -1,15 +1,15 @@
 {
   "project_info": {
     "project_number": "790754849404",
-    "project_id": "classify-bc72a",
-    "storage_bucket": "classify-bc72a.firebasestorage.app"
+    "project_id": "classlift-bc72a",
+    "storage_bucket": "classlift-bc72a.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
         "mobilesdk_app_id": "1:790754849404:android:3a8478926f79d5fc414ff9",
         "android_client_info": {
-          "package_name": "com.pitta.classify"
+          "package_name": "com.pitta.classlift"
         }
       },
       "oauth_client": [],

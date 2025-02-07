@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:classify/components/sign_google_button.dart';
-import 'package:classify/components/sign_facebook_button.dart';
-import 'package:classify/components/sign_apple_button.dart';
+import 'package:classlift/components/sign_google_button.dart';
+import 'package:classlift/components/sign_facebook_button.dart';
+import 'package:classlift/components/sign_apple_button.dart';
 
 class SignInButtonsRow extends StatelessWidget {
   final VoidCallback onGooglePressed;

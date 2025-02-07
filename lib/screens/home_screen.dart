@@ -1,18 +1,27 @@
+import 'dart:io';
+import 'package:classlift/models/career.dart';
+import 'package:classlift/screens/select_career.dart';
+import 'package:classlift/widgets/NavigationMenu.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'package:classify/utils/classlift_colors.dart';
+import 'package:classlift/utils/classlift_colors.dart';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart';
+import 'package:lottie/lottie.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
-  _HomeScreenState createState() =>
-      _HomeScreenState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  int _selectedIndex = 0; // Índice para el BottomNavigationBar
+  String? selectedCareerCode; // Definir la variable aquí
 
   @override
   void initState() {
@@ -29,30 +38,183 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _onFilePicked(String filePath) {
+    // Aquí puedes manejar el archivo seleccionado
+    print('Archivo seleccionado: $filePath');
+    // Puedes agregar lógica adicional, como cargar el archivo en la aplicación
+  }
+
+  Future<void> pickExcelFile(BuildContext context) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+
+      if (result != null) {
+        String filePath = result.files.single.path!;
+        // Llama a _onFilePicked correctamente
+        (context.findAncestorStateOfType<_HomeScreenState>())?._onFilePicked(filePath);
+
+        var bytes = await File(filePath).readAsBytes();
+        var excel = Excel.decodeBytes(bytes);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Archivo seleccionado: ${result.files.single.name}')),
+        );
+
+        // Usar el código de la carrera seleccionada
+        print('Código de la carrera seleccionada: $selectedCareerCode');
+
+        String sheetName = selectedCareerCode ?? "LCIk"; // Usar el código de carrera
+        Sheet? lciSheet = excel.tables[sheetName];
+
+        if (lciSheet != null) {
+          print('📄 Hoja encontrada: $sheetName');
+          extractClassDetails("Estructura de Datos", lciSheet);
+        } else {
+          print("❌ No se encontró la hoja '$sheetName' en el archivo Excel.");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No se encontró la hoja "$sheetName" en el archivo Excel')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Selección cancelada')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al seleccionar el archivo: $e')),
+      );
+    }
+  }
+
+  void showOptionsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Espaciado para el botón de cerrar (no visible aquí)
+                  SizedBox(height: 20),
+
+                  // Lottie animation for options icon
+                  //Lottie.asset('assets/lottie/options.json', height: 200, width: 200),
+
+                  SizedBox(height: 10),
+
+                  // Título de opciones
+                  Text(
+                    'Seleccioná una opción',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Opción de agregar por Excel
+                  ListTile(
+                    leading: Icon(Icons.file_upload),
+                    title: Text('Agregar horario de clases por Excel'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      pickExcelFile(context);
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(builder: (context) => SelectCareerScreen()),
+                      // );
+                    },
+                  ),
+
+                  // Opción de agregar manualmente
+                  ListTile(
+                    leading: Icon(Icons.edit),
+                    title: Text('Agregar clases manualmente'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      //TODO Navega a la pantalla para agregar clases manualmente
+                      //Navigator.push(context, MaterialPageRoute(builder: (context) => AddManuallyScreen()));
+                    },
+                  ),
+
+                  // Botón de OK
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 30),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Cancelar'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 50),
+                          backgroundColor: ClassliftColors.PrimaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 30),
+                ],
+              ),
+            ),
+
+            // Botón de cerrar
+            Positioned(
+              top: 10,
+              right: 10,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop(); // Cierra la pantalla/modal actual
+                },
+                child: Lottie.asset(
+                  'assets/lottie/close.json',
+                  height: 50,
+                  width: 50,
+                  repeat: false, // Solo animar una vez
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: const Text(
-          "Horario de Clases",
-          style: TextStyle(
-            color: ClassliftColors.SecondaryColor,
-            fontWeight: FontWeight.bold,
+
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70.0), // Ajusta la altura según necesites
+        child: AppBar(
+          title: const Text(
+            "Horario de Clases",
+            style: TextStyle(
+              color: ClassliftColors.SecondaryColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          backgroundColor: ClassliftColors.PrimaryColor,
         ),
-        backgroundColor: ClassliftColors.PrimaryColor,
-        actions: [
-          // IconButton(
-          //   icon: Icon(Icons.today, color: ClassliftColors.White),
-          //   onPressed: () {
-          //     setState(() {
-          //       _selectedDay = DateTime.now();
-          //       _focusedDay = DateTime.now();
-          //     });
-          //   },
-          // ),
-        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -108,6 +270,21 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: CustomBottomNavigationBar (
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+        onFilePicked: _onFilePicked,
+
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showOptionsBottomSheet(context);
+        },
+        child: Icon(Icons.add),
+        backgroundColor: ClassliftColors.SecondaryColor,
+      ),
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, // Posición del botón flotante
     );
   }
 }
@@ -260,3 +437,131 @@ class CalendarFooter extends StatelessWidget {
     );
   }
 }
+
+// Funciones
+void extractClassDetails(String subjectName, Sheet lciSheet) {
+  print("🔍 Buscando detalles de clases para: $subjectName");
+
+  // Recorremos las filas de la hoja Excel
+  for (var row in lciSheet.rows) {
+    // Comprobamos si la fila tiene suficientes columnas (en función de la cabecera)
+    if (row.length > 10) {
+      String item = row[0]?.value.toString() ?? ""; // Item
+      String dpto = row[1]?.value.toString() ?? ""; // Departamento
+      String subject = row[2]?.value.toString() ?? ""; // Asignatura
+      String level = row[3]?.value.toString() ?? ""; // Nivel
+      String semesterGroup = row[4]?.value.toString() ?? ""; // Semestre/Grupo
+      String sigla = row[5]?.value.toString() ?? ""; // Sigla carrera
+      String emphasis = row[6]?.value.toString() ?? ""; // Enfasis
+      String plan = row[7]?.value.toString() ?? ""; // Plan
+      String shift = row[8]?.value.toString() ?? ""; // Turno
+      String section = row[9]?.value.toString() ?? ""; // Sección
+      String platform = row[10]?.value.toString() ?? ""; // Plataforma aula virtual
+      String title = row[11]?.value.toString() ?? ""; // Título
+      String lastName = row[12]?.value.toString() ?? ""; // Apellido
+      String firstName = row[13]?.value.toString() ?? ""; // Nombre
+      String email = row[14]?.value.toString() ?? ""; // Correo Institucional
+      String ExamenParcial1 = row[15]?.value.toString() ?? ""; // Día 1
+      String HoraParcial1 = row[16]?.value.toString() ?? ""; // Hora 1
+      String AulaParcial1 = row[17]?.value.toString() ?? ""; // Aula 1
+      String ExamenParcial2 = row[18]?.value.toString() ?? ""; // Día 2
+      String HoraParcial2 = row[19]?.value.toString() ?? ""; // Hora 2
+      String AulaParcial2 = row[20]?.value.toString() ?? ""; // Aula 2
+      String ExamenFinal1 = row[21]?.value.toString() ?? ""; // Día 3
+      String HoraFinal1 = row[22]?.value.toString() ?? ""; // Hora 3
+      String AulaFinal1 = row[23]?.value.toString() ?? ""; // Aula 3
+      String ExamenFinal2 = row[26]?.value.toString() ?? ""; // Aula 4
+      String HoraFinal2 = row[27]?.value.toString() ?? ""; // Día del examen
+      String Lunes = row[35]?.value.toString() ?? ""; // Hora del examen
+      String Martes = row[37]?.value.toString() ?? ""; // Aula del examen
+      String Miercoles = row[39]?.value.toString() ?? ""; // Presidente
+      String Jueves = row[41]?.value.toString() ?? ""; // Miembro 1
+      String Viernes = row[43]?.value.toString() ?? ""; // Miembro 2
+      String Sabado = row[45]?.value.toString() ?? ""; // Aula final
+
+      if (subject == subjectName) {
+        print("📚 Materia encontrada: $subject");
+
+        // Muestra los detalles de la materia
+        print("Departamento: $dpto");
+        print("Nivel: $level");
+        print("Semestre/Grupo: $semesterGroup");
+        print("Sigla carrera: $sigla");
+        print("Enfasis: $emphasis");
+        print("Plan: $plan");
+        print("Turno: $shift");
+        print("Sección: $section");
+        print("Plataforma: $platform");
+        print("Título: $title");
+        print("Docente: $lastName, $firstName");
+        print("Correo: $email");
+
+        // Muestra los días y horarios de clases
+        print("Día 1: $ExamenParcial1, Hora 1: $HoraParcial1, Aula 1: $AulaParcial1");
+        print("Día 2: $ExamenParcial2, Hora 2: $HoraParcial2, Aula 2: $AulaParcial2");
+        print("Día 3: $ExamenFinal1, Hora 3: $HoraFinal1, Aula 3: $AulaFinal1");
+        print("Día 4: $ExamenFinal2, Hora 4: $HoraFinal2, Aula 4: $ExamenFinal2");
+
+        // Muestra los detalles del examen
+        print("Examen: $HoraFinal2 $Lunes en Aula $Martes");
+
+        // Muestra los miembros del jurado
+        print("Presidentes: $Miercoles");
+        print("Miembros: $Jueves, $Viernes");
+
+        // Muestra la aula del final
+        print("Aula final: $Sabado");
+
+        return;
+      }
+    }
+  }
+  print("❌ No se encontró la asignatura '$subjectName'.");
+}
+
+void showSemesterSelection(BuildContext context, String selectedCareerCode) {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Seleccione su semestre y materias',
+              style: Theme.of(context).textTheme.headlineLarge,
+            ),
+            ListTile(
+              leading: Icon(Icons.calendar_today),
+              title: Text('Semestre 1'),
+              onTap: () {
+                Navigator.pop(context);
+                // Mostrar selección de materias y turno para el semestre 1
+                // Lógica adicional aquí, utilizando el selectedCareerCode si es necesario
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.calendar_today),
+              title: Text('Semestre 2'),
+              onTap: () {
+                Navigator.pop(context);
+                // Mostrar selección de materias y turno para el semestre 2
+                // Lógica adicional aquí, utilizando el selectedCareerCode si es necesario
+              },
+            ),
+            // Agregar más semestres si es necesario
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
+
+
+
+
+
+

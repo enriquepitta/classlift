@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:classify/components/background_gradient.dart';
-import 'package:classify/components/textfield_label.dart';
-import 'package:classify/components/sign_google_button.dart';
-import 'package:classify/components/sign_facebook_button.dart';
-import 'package:classify/components/sign_button_row.dart';
-import 'package:classify/screens/forgot_password_screen.dart';
+import 'package:classlift/components/background_gradient.dart';
+import 'package:classlift/components/textfield_label.dart';
+import 'package:classlift/components/sign_google_button.dart';
+import 'package:classlift/components/sign_facebook_button.dart';
+import 'package:classlift/components/sign_button_row.dart';
+import 'package:classlift/screens/forgot_password_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

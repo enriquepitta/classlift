@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:classify/components/background_gradient.dart';
+import 'package:classlift/components/background_gradient.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final String email; // Recibimos el correo electrónico como parámetro

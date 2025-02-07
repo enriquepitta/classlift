@@ -8,12 +8,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:classify/main.dart';
+import 'package:classlift/main.dart';
 
 void main() {
   testWidgets('Counter increments smoke test.dart', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const Classify());
+    await tester.pumpWidget(const Classlift());
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

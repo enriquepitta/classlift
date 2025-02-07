@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:classify/components/background_gradient.dart';
-import 'package:classify/components/textfield_label.dart';
-import 'package:classify/screens/verify_email_screen.dart';
+import 'package:classlift/components/background_gradient.dart';
+import 'package:classlift/components/textfield_label.dart';
+import 'package:classlift/screens/verify_email_screen.dart';
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 

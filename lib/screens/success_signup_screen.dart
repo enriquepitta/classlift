@@ -1,6 +1,5 @@
-import 'package:classify/components/background_gradient.dart';
-import 'package:classify/screens/forgot_password_screen.dart';
-import 'package:classify/screens/home_screen.dart';
+import 'package:classlift/components/background_gradient.dart';
+import 'package:classlift/screens/home_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -63,7 +62,7 @@ class SuccessScreen extends StatelessWidget {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const HomeScreen(),
+                          builder: (context) => HomeScreen(),
                         ),
                       );
                     },
