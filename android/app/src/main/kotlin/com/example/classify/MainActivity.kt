@@ -1,4 +1,4 @@
-package com.example.classlift
+package com.pitta.classlift
 
 import io.flutter.embedding.android.FlutterActivity
 
