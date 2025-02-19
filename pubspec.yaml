@@ -59,7 +59,7 @@ dev_dependencies:
   dropdown_search: ^5.0.0
   sqflite: ^2.0.0+3
   path: ^1.8.0
-
+  provider: ^6.0.5  # Asegúrate de tener una versión actualizada
   #  firebase_core: ^2.32.0
 #  firebase_auth: ^4.16.0
   # Revisa en pub.dev si hay una versión más reciente

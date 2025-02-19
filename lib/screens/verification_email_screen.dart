@@ -52,6 +52,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       if (_auth.currentUser?.emailVerified == true) {
         setState(() {
           _isVerified = true; // Habilitar el botón
+          getIdToken();
         });
         _verificationCheckTimer.cancel(); // Detener la verificación
       }
@@ -198,5 +199,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
         ),
       ),
     );
+  }
+}
+
+Future<String?> getIdToken() async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    // Obtén el ID Token del usuario autenticado
+    String? idToken = await user.getIdToken();
+    return idToken;
+  } else {
+    throw Exception("No user is signed in");
   }
 }

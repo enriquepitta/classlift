@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:classlift/models/career.dart';
 import 'package:classlift/screens/select_career.dart';
 import 'package:classlift/widgets/NavigationMenu.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime? _selectedDay;
   int _selectedIndex = 0; // Índice para el BottomNavigationBar
   String? selectedCareerCode; // Definir la variable aquí
+  String? _excelFilePath; // Añade esta variable para almacenar la ruta del archivo
 
   @override
   void initState() {
@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Puedes agregar lógica adicional, como cargar el archivo en la aplicación
   }
 
-  Future<void> pickExcelFile(BuildContext context) async {
+  Future<void> pickExcelFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -58,38 +58,37 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (result != null) {
-        String filePath = result.files.single.path!;
-        // Llama a _onFilePicked correctamente
-        (context.findAncestorStateOfType<_HomeScreenState>())?._onFilePicked(filePath);
-
-        var bytes = await File(filePath).readAsBytes();
+        _excelFilePath = result.files.single.path; // Guarda la ruta del archivo
+        var bytes = await File(_excelFilePath!).readAsBytes();
         var excel = Excel.decodeBytes(bytes);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Archivo seleccionado: ${result.files.single.name}')),
-        );
+        List<String> availableSheets = excel.tables.keys.toList();
 
-        // Usar el código de la carrera seleccionada
-        print('Código de la carrera seleccionada: $selectedCareerCode');
-
-        String sheetName = selectedCareerCode ?? "LCIk"; // Usar el código de carrera
-        Sheet? lciSheet = excel.tables[sheetName];
-
-        if (lciSheet != null) {
-          print('📄 Hoja encontrada: $sheetName');
-          extractClassDetails("Estructura de Datos", lciSheet);
+        if (availableSheets.isNotEmpty) {
+          if (!mounted) return; // Verifica si el widget sigue en el árbol
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SelectCareerScreen(
+                availableSheets: availableSheets,
+                excelFilePath: _excelFilePath,
+              ),
+            ),
+          );
         } else {
-          print("❌ No se encontró la hoja '$sheetName' en el archivo Excel.");
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No se encontró la hoja "$sheetName" en el archivo Excel')),
+            SnackBar(content: Text('No se encontraron hojas en el archivo Excel seleccionado')),
           );
         }
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Selección cancelada')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al seleccionar el archivo: $e')),
       );
@@ -107,51 +106,32 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Espaciado para el botón de cerrar (no visible aquí)
                   SizedBox(height: 20),
-
-                  // Lottie animation for options icon
-                  //Lottie.asset('assets/lottie/options.json', height: 200, width: 200),
-
                   SizedBox(height: 10),
-
-                  // Título de opciones
                   Text(
                     'Seleccioná una opción',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.normal,
                       fontSize: 22,
                       color: Colors.black87,
                     ),
                   ),
                   SizedBox(height: 20),
-
-                  // Opción de agregar por Excel
                   ListTile(
                     leading: Icon(Icons.file_upload),
                     title: Text('Agregar horario de clases por Excel'),
                     onTap: () {
                       Navigator.pop(context);
-                      pickExcelFile(context);
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(builder: (context) => SelectCareerScreen()),
-                      // );
+                      pickExcelFile();
                     },
                   ),
-
-                  // Opción de agregar manualmente
                   ListTile(
                     leading: Icon(Icons.edit),
                     title: Text('Agregar clases manualmente'),
                     onTap: () {
                       Navigator.pop(context);
-                      //TODO Navega a la pantalla para agregar clases manualmente
-                      //Navigator.push(context, MaterialPageRoute(builder: (context) => AddManuallyScreen()));
                     },
                   ),
-
-                  // Botón de OK
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
@@ -176,20 +156,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-
-            // Botón de cerrar
             Positioned(
               top: 10,
               right: 10,
               child: GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pop(); // Cierra la pantalla/modal actual
+                  Navigator.of(context).pop();
                 },
                 child: Lottie.asset(
                   'assets/lottie/close.json',
                   height: 50,
                   width: 50,
-                  repeat: false, // Solo animar una vez
+                  repeat: false,
                 ),
               ),
             ),
@@ -198,6 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -270,21 +249,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigationBar (
+      bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
         onFilePicked: _onFilePicked,
-
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           showOptionsBottomSheet(context);
         },
-        child: Icon(Icons.add),
+        child: Icon(Icons.add, color: Colors.white),
         backgroundColor: ClassliftColors.SecondaryColor,
+        shape: CircleBorder(), // Asegura que sea completamente redondo
       ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked, // Posición del botón flotante
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }
@@ -557,11 +535,3 @@ void showSemesterSelection(BuildContext context, String selectedCareerCode) {
     },
   );
 }
-
-
-
-
-
-
-
-
