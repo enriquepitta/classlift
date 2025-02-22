@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
             "Horario de Clases",
             style: TextStyle(
               color: ClassliftColors.SecondaryColor,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
             ),
           ),
           backgroundColor: ClassliftColors.PrimaryColor,

@@ -1,9 +1,11 @@
-import 'package:classlift/models/career.dart';
-import 'package:classlift/utils/classlift_colors.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:dropdown_search/dropdown_search.dart';
 import 'package:excel/excel.dart';
 import 'dart:io';
+import 'package:classlift/models/career.dart';
+import 'package:classlift/utils/classlift_colors.dart';
+import 'package:lottie/lottie.dart';
+import 'package:flutter/scheduler.dart';
 
 class SelectCareerScreen extends StatefulWidget {
   final List<String> availableSheets;
@@ -15,17 +17,16 @@ class SelectCareerScreen extends StatefulWidget {
   _SelectCareerScreenState createState() => _SelectCareerScreenState();
 }
 
-class _SelectCareerScreenState extends State<SelectCareerScreen> {
-  String? selectedCareerCode;
+class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProviderStateMixin {
+  List<String> selectedCareerCodes = [];
   Map<int, List<String>> semesters = {};
-  int maxSemester = 0; // Variable para almacenar el número máximo de semestres
+  int maxSemester = 0;
   Map<int, bool> selectedSemesters = {};
   Map<String, bool> selectedSubjects = {};
 
   @override
   void initState() {
     super.initState();
-    // Inicializa selectedSemesters según el número máximo de semestres obtenido
   }
 
   void toggleSemester(int semester, bool? isChecked) {
@@ -41,7 +42,6 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> {
     setState(() {
       selectedSubjects[subject] = isChecked ?? false;
 
-      // Verificar si todas las materias del semestre están marcadas
       for (var entry in semesters.entries) {
         if (entry.value.every((s) => selectedSubjects[s]!)) {
           selectedSemesters[entry.key] = true;
@@ -64,7 +64,7 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> {
 
       for (var row in table!.rows) {
         if (row.length > 4) {
-          String semesterValue = row[4]?.value.toString() ?? "0"; // Suponiendo que la columna de semestre está en el índice 4
+          String semesterValue = row[4]?.value.toString() ?? "0";
           int semester = int.tryParse(semesterValue) ?? 0;
           if (semester > maxSemester) {
             maxSemester = semester;
@@ -86,16 +86,13 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> {
     if (excel.tables.containsKey(sheetName)) {
       var table = excel.tables[sheetName];
 
-      // Obtener el número máximo de semestres
       maxSemester = await getMaxSemester(filePath, sheetName);
       setState(() {
-        // Inicializar la estructura de datos para los semestres
         for (int i = 1; i <= maxSemester; i++) {
           semesters[i] = [];
         }
       });
 
-      // Procesar las materias y asignarlas a los semestres
       for (var row in table!.rows) {
         if (row.length > 4) {
           String semesterValue = row[4]?.value.toString() ?? "0";
@@ -123,93 +120,72 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Seleccionar Carrera",
-          style: TextStyle(
-            color: ClassliftColors.SecondaryColor,
-            fontWeight: FontWeight.bold,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70.0), // Ajusta la altura según necesites
+        child: AppBar(
+          title: const Text(
+            "Seleccioná tu carrera",
+            style: TextStyle(
+              color: ClassliftColors.SecondaryColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor: ClassliftColors.PrimaryColor,
+          iconTheme: IconThemeData(
+            color: ClassliftColors.SecondaryColor, // Cambia el color del botón de atrás
           ),
         ),
-        backgroundColor: ClassliftColors.PrimaryColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0), // Añade padding alrededor de todo el contenido
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0), // Añade padding alrededor del selector de carrera
-              child: DropdownSearch<String>(
-                popupProps: PopupProps.menu(
-                  showSearchBox: true,
-                  searchFieldProps: TextFieldProps(
-                    decoration: InputDecoration(
-                      labelText: "Buscar carrera",
-                    ),
-                  ),
-                ),
-                items: filteredCareers.map((c) => c.description).toList(),
-                dropdownDecoratorProps: DropDownDecoratorProps(
-                  dropdownSearchDecoration: InputDecoration(
-                    labelText: "Carrera",
-                    hintText: "Seleccione su carrera",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                onChanged: (newValue) async {
-                  var selectedCareer = filteredCareers.firstWhere((c) => c.description == newValue);
-                  setState(() {
-                    selectedCareerCode = selectedCareer.code;
-                  });
+      body: Column(
+        children: [
+          // Muestra la cantidad de carreras seleccionadas
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+            child: Text(
+              'Seleccionaste ${selectedCareerCodes.length} carrera${selectedCareerCodes.length != 1 ? 's' : ''}',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Container(
+                width: double.infinity,
+                child: CupertinoListSection(
+                  backgroundColor: Colors.white,
+                  children: filteredCareers.map((career) {
+                    bool isSelected = selectedCareerCodes.contains(career.code);
 
-                  // Procesar solo la hoja correspondiente a la carrera seleccionada
-                  await processExcelFile(widget.excelFilePath, selectedCareerCode!);
-                },
-                selectedItem: selectedCareerCode != null
-                    ? filteredCareers.firstWhere((c) => c.code == selectedCareerCode).description
-                    : null,
+                    return CareerCheckboxTile(
+                      career: career,
+                      isSelected: isSelected,
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            selectedCareerCodes.remove(career.code);
+                          } else {
+                            selectedCareerCodes.add(career.code);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero, // Elimina cualquier padding interno
-                children: semesters.keys.map((semester) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 0.0), // Añade padding interno aquí
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero, // Elimina el padding interno de ExpansionTile
-                      title: Row(
-                        children: [
-                          Checkbox(
-                            value: selectedSemesters[semester],
-                            onChanged: (isChecked) => toggleSemester(semester, isChecked),
-                          ),
-                          Text("Semestre $semester"),
-                        ],
-                      ),
-                      children: semesters[semester]!.map((subject) {
-                        return ListTile(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 0.0, vertical: 0.0), // Reduce padding
-                          leading: Checkbox(
-                            value: selectedSubjects[subject],
-                            onChanged: (isChecked) => toggleSubject(subject, isChecked),
-                          ),
-                          title: Text(subject),
-                        );
-                      }).toList(),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            ElevatedButton(
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 0.0),
+            child: ElevatedButton(
               onPressed: () {
-                if (selectedCareerCode != null) {
-                  Navigator.pop(context, selectedCareerCode);
+                if (selectedCareerCodes.isNotEmpty) {
+                  Navigator.pop(context, selectedCareerCodes);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Por favor, seleccione una carrera')),
+                    SnackBar(content: Text('Por favor, seleccione al menos una carrera')),
                   );
                 }
               },
@@ -223,8 +199,102 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-          ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class CareerCheckboxTile extends StatefulWidget {
+  final Career career;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  CareerCheckboxTile({
+    required this.career,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  _CareerCheckboxTileState createState() => _CareerCheckboxTileState();
+}
+
+class _CareerCheckboxTileState extends State<CareerCheckboxTile> with TickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 500),
+    );
+
+    if (widget.isSelected) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(CareerCheckboxTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected != oldWidget.isSelected) {
+      if (widget.isSelected) {
+        _controller.forward();
+      } else {
+        // Reinicia la animación al principio y luego la reproduce en reversa
+        _controller.value = 0.0; // Forzar el inicio desde el principio
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoListTile(
+      onTap: widget.onTap,
+      backgroundColor: careers.indexOf(widget.career) % 2 == 0
+          ? Colors.white // Color para índices pares
+          : Colors.grey[200], // Color para índices impares
+      title: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: SizedBox(
+          height: 60,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              widget.career.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
+              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
+                color: Colors.black, // Cambia el color del texto a negro
+              ),
+            ),
+          ),
+        ),
+      ),
+      trailing: GestureDetector(
+        onTap: widget.onTap,
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Lottie.asset(
+            'assets/lottie/checkbox_lottie.json',
+            controller: _controller,
+            onLoaded: (composition) {
+              _controller.duration = composition.duration;
+            },
+          ),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:classlift/screens/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart'; // Importa Cupertino
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -9,13 +10,6 @@ void main() async {
 
   // Se inicializa firebase
   await Firebase.initializeApp();
-
-  // final Database db = await DatabaseHelper.initializeDB();
-  // await DatabaseHelper.insertItem(db, 'Manzanas', 5);
-  // await DatabaseHelper.insertItem(db, 'Naranjas', 3);
-  //
-  // List<Map<String, dynamic>> items = await DatabaseHelper.getItems(db);
-  // print(items); // Muestra los elementos en la consola
 
   runApp(const Classlift());
 }
@@ -29,10 +23,24 @@ class Classlift extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        fontFamily: 'Poppins',
         useMaterial3: true,
+        fontFamily: 'Poppins', // Aplica Poppins globalmente para Material
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontFamily: 'Poppins'), // Asegura que Poppins se use en Material
+        ),
       ),
       home: HomeScreen(),
+      // Configura la fuente de Cupertino para usar Poppins
+      builder: (context, child) {
+        return CupertinoTheme(
+          data: CupertinoThemeData(
+            textTheme: CupertinoTextThemeData(
+              textStyle: const TextStyle(fontFamily: 'Poppins'), // Aplica Poppins a Cupertino
+            ),
+          ),
+          child: child!, // Pasa el child proporcionado por MaterialApp
+        );
+      },
     );
   }
 }
