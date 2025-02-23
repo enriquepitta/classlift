@@ -1,3 +1,4 @@
+import 'package:classlift/screens/class_schedule.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart';
@@ -19,98 +20,38 @@ class SelectCareerScreen extends StatefulWidget {
 
 class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProviderStateMixin {
   List<String> selectedCareerCodes = [];
-  Map<int, List<String>> semesters = {};
-  int maxSemester = 0;
-  Map<int, bool> selectedSemesters = {};
-  Map<String, bool> selectedSubjects = {};
+  bool isLoading = false; // Estado de carga
 
   @override
   void initState() {
     super.initState();
   }
 
-  void toggleSemester(int semester, bool? isChecked) {
+  Future<void> _processExcelFile() async {
+    if (widget.excelFilePath == null || selectedCareerCodes.isEmpty) return;
+
     setState(() {
-      selectedSemesters[semester] = isChecked ?? false;
-      for (var subject in semesters[semester]!) {
-        selectedSubjects[subject] = isChecked ?? false;
-      }
+      isLoading = true; // Activar el estado de carga
     });
-  }
 
-  void toggleSubject(String subject, bool? isChecked) {
+    // Simula el procesamiento del archivo Excel (cambia esto por tu lógica real)
+    await Future.delayed(Duration(seconds: 2)); // Simulación de carga
+
     setState(() {
-      selectedSubjects[subject] = isChecked ?? false;
-
-      for (var entry in semesters.entries) {
-        if (entry.value.every((s) => selectedSubjects[s]!)) {
-          selectedSemesters[entry.key] = true;
-        } else {
-          selectedSemesters[entry.key] = false;
-        }
-      }
+      isLoading = false; // Desactivar el estado de carga
     });
-  }
 
-  Future<int> getMaxSemester(String? filePath, String sheetName) async {
-    if (filePath == null) return 0;
-    var bytes = await File(filePath).readAsBytes();
-    var excel = Excel.decodeBytes(bytes);
-
-    int maxSemester = 0;
-
-    if (excel.tables.containsKey(sheetName)) {
-      var table = excel.tables[sheetName];
-
-      for (var row in table!.rows) {
-        if (row.length > 4) {
-          String semesterValue = row[4]?.value.toString() ?? "0";
-          int semester = int.tryParse(semesterValue) ?? 0;
-          if (semester > maxSemester) {
-            maxSemester = semester;
-          }
-        }
-      }
-    } else {
-      print('La hoja $sheetName no existe en el archivo Excel.');
-    }
-
-    return maxSemester;
-  }
-
-  Future<void> processExcelFile(String? filePath, String sheetName) async {
-    if (filePath == null) return;
-    var bytes = await File(filePath).readAsBytes();
-    var excel = Excel.decodeBytes(bytes);
-
-    if (excel.tables.containsKey(sheetName)) {
-      var table = excel.tables[sheetName];
-
-      maxSemester = await getMaxSemester(filePath, sheetName);
-      setState(() {
-        for (int i = 1; i <= maxSemester; i++) {
-          semesters[i] = [];
-        }
-      });
-
-      for (var row in table!.rows) {
-        if (row.length > 4) {
-          String semesterValue = row[4]?.value.toString() ?? "0";
-          int semester = int.tryParse(semesterValue) ?? 0;
-          String subject = row[2]?.value.toString() ?? "";
-
-          if (semester > 0 && subject.isNotEmpty) {
-            setState(() {
-              semesters[semester]?.add(subject);
-              selectedSemesters[semester] = false;
-              selectedSubjects[subject] = false;
-            });
-          }
-        }
-      }
-    } else {
-      print('La hoja $sheetName no existe en el archivo Excel.');
-    }
+    // Navegar a la siguiente pantalla
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SelectSemesterScreen(
+          availableSheets: widget.availableSheets,
+          excelFilePath: widget.excelFilePath,
+          selectedCareerCodes: selectedCareerCodes,
+        ),
+      ),
+    );
   }
 
   @override
@@ -121,7 +62,7 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProv
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0), // Ajusta la altura según necesites
+        preferredSize: const Size.fromHeight(70.0),
         child: AppBar(
           title: const Text(
             "Seleccioná tu carrera",
@@ -132,13 +73,12 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProv
           ),
           backgroundColor: ClassliftColors.PrimaryColor,
           iconTheme: IconThemeData(
-            color: ClassliftColors.SecondaryColor, // Cambia el color del botón de atrás
+            color: ClassliftColors.SecondaryColor,
           ),
         ),
       ),
       body: Column(
         children: [
-          // Muestra la cantidad de carreras seleccionadas
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
             child: Text(
@@ -179,23 +119,47 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProv
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 0.0),
-            child: ElevatedButton(
-              onPressed: () {
-                if (selectedCareerCodes.isNotEmpty) {
-                  Navigator.pop(context, selectedCareerCodes);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Por favor, seleccione al menos una carrera')),
-                  );
-                }
-              },
-              child: const Text('Continuar'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-                backgroundColor: ClassliftColors.PrimaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: ClassliftColors.PrimaryColor, // Color de fondo constante
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: ElevatedButton(
+                onPressed: isLoading
+                    ? null // Deshabilitar el botón durante la carga
+                    : () {
+                  if (selectedCareerCodes.isNotEmpty) {
+                    _processExcelFile(); // Procesar el archivo Excel
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Por favor, seleccione al menos una carrera')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                  backgroundColor: Colors.transparent, // Fondo transparente
+                  foregroundColor: Colors.white,
+                  elevation: 0, // Eliminar la sombra
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (isLoading)
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white, // Color del spinner
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    if (!isLoading)
+                      const Text('Continuar'),
+                  ],
                 ),
               ),
             ),
