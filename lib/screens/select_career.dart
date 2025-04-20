@@ -77,106 +77,108 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProv
           ),
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-            child: Text(
-              'Seleccionaste ${selectedCareerCodes.length} carrera${selectedCareerCodes.length != 1 ? 's' : ''}',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Container(
-                width: double.infinity,
-                child: CupertinoListSection(
-                  backgroundColor: Colors.white,
-                  children: filteredCareers.map((career) {
-                    bool isSelected = selectedCareerCodes.contains(career.code);
-
-                    return CareerCheckboxTile(
-                      career: career,
-                      isSelected: isSelected,
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            selectedCareerCodes.remove(career.code);
-                          } else {
-                            selectedCareerCodes.add(career.code);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
+      body: Container(
+        color: Color(0xFFF5F5F5),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              child: Text(
+                'Seleccionaste ${selectedCareerCodes.length} carrera${selectedCareerCodes.length != 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 0.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: ClassliftColors.PrimaryColor, // Color de fondo constante
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: ElevatedButton(
-                onPressed: isLoading
-                    ? null // Deshabilitar el botón durante la carga
-                    : () {
-                  if (selectedCareerCodes.isNotEmpty) {
-                    _processExcelFile(); // Procesar el archivo Excel
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Por favor, seleccione al menos una carrera')),
-                    );
-                  }
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredCareers.length,
+                itemBuilder: (context, index) {
+                  final career = filteredCareers[index];
+                  final isSelected = selectedCareerCodes.contains(career.code);
+
+                  return CareerCheckboxTile(
+                    index: index,
+                    career: career,
+                    isSelected: isSelected,
+                    onTap: () {
+                      setState(() {
+                        if (isSelected) {
+                          selectedCareerCodes.remove(career.code);
+                        } else {
+                          selectedCareerCodes.add(career.code);
+                        }
+                      });
+                    },
+                  );
                 },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: Colors.transparent, // Fondo transparente
-                  foregroundColor: Colors.white,
-                  elevation: 0, // Eliminar la sombra
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: ClassliftColors.PrimaryColor,
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                    if (selectedCareerCodes.isNotEmpty) {
+                      _processExcelFile();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Por favor, seleccione al menos una carrera')),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (isLoading)
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      if (!isLoading)
+                        const Text('Continuar'),
+                    ],
                   ),
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (isLoading)
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white, // Color del spinner
-                          strokeWidth: 2,
-                        ),
-                      ),
-                    if (!isLoading)
-                      const Text('Continuar'),
-                  ],
-                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
 }
 
 class CareerCheckboxTile extends StatefulWidget {
+  final int index;
   final Career career;
   final bool isSelected;
   final VoidCallback onTap;
 
   CareerCheckboxTile({
+    required this.index,
     required this.career,
     required this.isSelected,
     required this.onTap,
@@ -228,7 +230,7 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile> with TickerProv
       onTap: widget.onTap,
       backgroundColor: careers.indexOf(widget.career) % 2 == 0
           ? Colors.white // Color para índices pares
-          : Colors.grey[200], // Color para índices impares
+          : Color(0xFFF5F5F5), // Color para índices impares
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: SizedBox(
