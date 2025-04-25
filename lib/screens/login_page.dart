@@ -66,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
             // SafeArea para asegurar que el contenido no se vea afectado por el notch o la barra de navegación
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -97,14 +97,14 @@ class _LoginPageState extends State<LoginPage> {
                                       fontWeight: FontWeight.bold,
                                       fontSize: 52,
                                       color: Colors
-                                          .white, // Necesitas un color base, se sobrepone el gradiente
+                                          .white,
                                     ),
                                   ),
                                 ),
                               ),
                               SizedBox(
                                 height: MediaQuery.of(context).size.height *
-                                    0.03, // 3% de la altura de la pantalla
+                                    0.03,
                               ),
                               Form(
                                 key: _isRegistering
@@ -113,7 +113,6 @@ class _LoginPageState extends State<LoginPage> {
                                 child: Column(
                                   children: [
                                     if (_isRegistering) ...[
-                                      // Campo de texto para el nombre
                                       TextfieldLabel().buildLabelAndTextField(
                                         label: 'Nombre completo',
                                         controller: _nameController,
@@ -390,7 +389,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -520,7 +519,7 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
           return Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 0),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -528,7 +527,7 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
                     SizedBox(height: 20),
 
                     // Lottie animation for caution icon
-                    Lottie.asset('assets/lottie/Caution.json', height: 200, width: 200),
+                    Lottie.asset('assets/lottie/Caution.json', height: 170, width: 170),
 
                     SizedBox(height: 10),
 
@@ -557,7 +556,7 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
                     Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 30),
+                        padding: const EdgeInsets.symmetric(vertical: 20),
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).pop();
@@ -574,7 +573,7 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
                         ),
                       ),
                     ),
-                    SizedBox(height: 30),
+                    SizedBox(height: 10),
 
                   ],
                 ),

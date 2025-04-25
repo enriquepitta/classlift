@@ -7,7 +7,8 @@ import 'package:classlift/models/career.dart';
 import 'package:classlift/utils/classlift_colors.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/scheduler.dart';
-
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 class SelectCareerScreen extends StatefulWidget {
   final List<String> availableSheets;
   final String? excelFilePath;
@@ -20,38 +21,43 @@ class SelectCareerScreen extends StatefulWidget {
 
 class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProviderStateMixin {
   List<String> selectedCareerCodes = [];
+  Map<String, Map<int, List<String>>>? careerSemesters;
+
   bool isLoading = false; // Estado de carga
+
+  Map<int, List<String>>? semestersData;
+  int? maxSemester;
 
   @override
   void initState() {
     super.initState();
   }
 
+
   Future<void> _processExcelFile() async {
-    if (widget.excelFilePath == null || selectedCareerCodes.isEmpty) return;
+    final fileBytes = await File(widget.excelFilePath!).readAsBytes();
 
-    setState(() {
-      isLoading = true; // Activar el estado de carga
-    });
+    final Map<String, Map<int, List<String>>> result = await compute(parseExcel, fileBytes);
 
-    // Simula el procesamiento del archivo Excel (cambia esto por tu lógica real)
-    await Future.delayed(Duration(seconds: 2)); // Simulación de carga
+    final filtered = <String, Map<int, List<String>>>{};
+    for (final code in selectedCareerCodes) {
+      if (result.containsKey(code)) {
+        filtered[code] = result[code]!;
+      }
+    }
 
-    setState(() {
-      isLoading = false; // Desactivar el estado de carga
-    });
-
-    // Navegar a la siguiente pantalla
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SelectSemesterScreen(
-          availableSheets: widget.availableSheets,
-          excelFilePath: widget.excelFilePath,
-          selectedCareerCodes: selectedCareerCodes,
+    if (filtered.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SelectSemesterScreen(
+            careerSemesters: filtered,
+            selectedCareerCodes: selectedCareerCodes,
+            careers: careers,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
@@ -117,7 +123,7 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProv
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
               child: Container(
                 decoration: BoxDecoration(
                   color: ClassliftColors.PrimaryColor,
@@ -127,13 +133,22 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> with TickerProv
                   onPressed: isLoading
                       ? null
                       : () {
-                    if (selectedCareerCodes.isNotEmpty) {
-                      _processExcelFile();
-                    } else {
+                    if (selectedCareerCodes.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Por favor, seleccione al menos una carrera')),
                       );
+                      return;
                     }
+
+                    setState(() => isLoading = true);
+
+                    Future.microtask(() async {
+                      await _processExcelFile();
+
+                      if (mounted) {
+                        setState(() => isLoading = false);
+                      }
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
@@ -208,12 +223,12 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile> with TickerProv
   void didUpdateWidget(CareerCheckboxTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isSelected != oldWidget.isSelected) {
-      if (widget.isSelected) {
-        _controller.forward();
-      } else {
-        // Reinicia la animación al principio y luego la reproduce en reversa
-        _controller.value = 0.0; // Forzar el inicio desde el principio
-        _controller.reverse();
+      if (widget.isSelected != oldWidget.isSelected) {
+        if (widget.isSelected) {
+          _controller.forward();
+        } else {
+          _controller.animateBack(0.0, duration: const Duration(milliseconds: 500));
+        }
       }
     }
   }
@@ -232,7 +247,7 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile> with TickerProv
           ? Colors.white // Color para índices pares
           : Color(0xFFF5F5F5), // Color para índices impares
       title: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 0.0),
         child: SizedBox(
           height: 60,
           child: Align(
@@ -243,7 +258,7 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile> with TickerProv
               overflow: TextOverflow.ellipsis,
               softWrap: true,
               style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                color: Colors.black, // Cambia el color del texto a negro
+                color: Colors.black,
               ),
             ),
           ),
@@ -265,4 +280,36 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile> with TickerProv
       ),
     );
   }
+}
+
+
+Map<String, Map<int, List<String>>> parseExcel(Uint8List fileBytesAndSheets) {
+  final excel = Excel.decodeBytes(fileBytesAndSheets);
+  final Map<String, Map<int, List<String>>> tempData = {};
+
+  for (final sheetName in excel.tables.keys) {
+    final table = excel.tables[sheetName];
+    if (table == null) continue;
+
+    final Map<int, List<String>> semestersMap = {};
+
+    for (var row in table.rows) {
+      if (row.length > 4) {
+        final semesterValue = row[4]?.value.toString() ?? "0";
+        final semester = int.tryParse(semesterValue) ?? 0;
+        final subject = row[2]?.value.toString() ?? "";
+
+        if (semester > 0 && subject.isNotEmpty) {
+          semestersMap.putIfAbsent(semester, () => []);
+          if (!semestersMap[semester]!.contains(subject)) {
+            semestersMap[semester]!.add(subject);
+          }
+        }
+      }
+    }
+
+    tempData[sheetName] = semestersMap;
+  }
+
+  return tempData;
 }

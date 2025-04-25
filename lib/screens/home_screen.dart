@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _selectedDay = DateTime.now();
-    Intl.defaultLocale = 'es_ES'; // Configura el idioma en español
+    Intl.defaultLocale = 'es_ES';
   }
 
   void _toggleCalendarFormat() {
@@ -286,7 +286,7 @@ class CalendarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
       decoration: BoxDecoration(
         gradient: ClassliftColors.primaryGradient,
       ),
