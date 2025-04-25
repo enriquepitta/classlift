@@ -1,4 +1,4 @@
-name: classify
+name: classlift
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -36,6 +36,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  wolt_modal_sheet: ^0.10.0
 
 dev_dependencies:
   flutter_test:
@@ -51,7 +52,14 @@ dev_dependencies:
   lottie: ^2.2.0
   firebase_core: ^3.8.1
   firebase_auth: ^5.3.4
-
+  intl: ^0.18.0
+  table_calendar: ^3.0.6
+  file_picker: ^8.3.1 # Para seleccionar archivos
+  excel: ^2.0.1 # Para manipular archivos de Excel
+  dropdown_search: ^5.0.0
+  sqflite: ^2.0.0+3
+  path: ^1.8.0
+  provider: ^6.0.5  # Asegúrate de tener una versión actualizada
   #  firebase_core: ^2.32.0
 #  firebase_auth: ^4.16.0
   # Revisa en pub.dev si hay una versión más reciente
@@ -65,6 +73,18 @@ flutter:
     - assets/icons/
     - assets/images/poliplanner_image.svg
     - assets/lottie/classify_splash.json
+    - assets/lottie/spinner_lottie.json
+    - assets/lottie/spinner_lottie_2.json
+    - assets/lottie/spinner_3.json
+    - assets/lottie/spinner_4.json
+    - assets/lottie/email_verification_lottie.json
+    - assets/lottie/Caution.json
+    - assets/lottie/close.json
+    - assets/lottie/successful_green.json
+    - assets/lottie/successful_blue.json
+    - assets/lottie/success_man.json
+    - assets/lottie/classlift_splash.json
+    - assets/lottie/checkbox_lottie.json
   fonts:
     - family: AnekLatin
       fonts:

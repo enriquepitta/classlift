@@ -1,4 +1,38 @@
 PODS:
+  - DKImagePickerController/Core (4.3.9):
+    - DKImagePickerController/ImageDataManager
+    - DKImagePickerController/Resource
+  - DKImagePickerController/ImageDataManager (4.3.9)
+  - DKImagePickerController/PhotoGallery (4.3.9):
+    - DKImagePickerController/Core
+    - DKPhotoGallery
+  - DKImagePickerController/Resource (4.3.9)
+  - DKPhotoGallery (0.0.19):
+    - DKPhotoGallery/Core (= 0.0.19)
+    - DKPhotoGallery/Model (= 0.0.19)
+    - DKPhotoGallery/Preview (= 0.0.19)
+    - DKPhotoGallery/Resource (= 0.0.19)
+    - SDWebImage
+    - SwiftyGif
+  - DKPhotoGallery/Core (0.0.19):
+    - DKPhotoGallery/Model
+    - DKPhotoGallery/Preview
+    - SDWebImage
+    - SwiftyGif
+  - DKPhotoGallery/Model (0.0.19):
+    - SDWebImage
+    - SwiftyGif
+  - DKPhotoGallery/Preview (0.0.19):
+    - DKPhotoGallery/Model
+    - DKPhotoGallery/Resource
+    - SDWebImage
+    - SwiftyGif
+  - DKPhotoGallery/Resource (0.0.19):
+    - SDWebImage
+    - SwiftyGif
+  - file_picker (0.0.1):
+    - DKImagePickerController/PhotoGallery
+    - Flutter
   - Firebase/Auth (11.4.0):
     - Firebase/CoreOnly
     - FirebaseAuth (~> 11.4.0)
@@ -55,15 +89,26 @@ PODS:
   - GTMSessionFetcher/Core (4.1.0)
   - lottie-ios (4.2.0)
   - RecaptchaInterop (100.0.0)
+  - SDWebImage (5.20.0):
+    - SDWebImage/Core (= 5.20.0)
+  - SDWebImage/Core (5.20.0)
+  - sqflite_darwin (0.0.4):
+    - Flutter
+    - FlutterMacOS
+  - SwiftyGif (5.4.5)
 
 DEPENDENCIES:
+  - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - Flutter (from `Flutter`)
   - lottie-ios (~> 4.2.0)
+  - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
 
 SPEC REPOS:
   trunk:
+    - DKImagePickerController
+    - DKPhotoGallery
     - Firebase
     - FirebaseAppCheckInterop
     - FirebaseAuth
@@ -75,16 +120,25 @@ SPEC REPOS:
     - GTMSessionFetcher
     - lottie-ios
     - RecaptchaInterop
+    - SDWebImage
+    - SwiftyGif
 
 EXTERNAL SOURCES:
+  file_picker:
+    :path: ".symlinks/plugins/file_picker/ios"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
     :path: ".symlinks/plugins/firebase_core/ios"
   Flutter:
     :path: Flutter
+  sqflite_darwin:
+    :path: ".symlinks/plugins/sqflite_darwin/darwin"
 
 SPEC CHECKSUMS:
+  DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
+  DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
+  file_picker: a0560bc09d61de87f12d246fc47d2119e6ef37be
   Firebase: cf1b19f21410b029b6786a54e9764a0cacad3c99
   firebase_auth: dee97e7428ef7c304083839d4e3bc4313c03afd5
   firebase_core: 222ad1787f0b9c145a06af2fdaa265a366576c0d
@@ -99,6 +153,9 @@ SPEC CHECKSUMS:
   GTMSessionFetcher: 923b710231ad3d6f3f0495ac1ced35421e07d9a6
   lottie-ios: 809ecf2d460ed650a6aed7aa88b2ec45fab4779c
   RecaptchaInterop: 7d1a4a01a6b2cb1610a47ef3f85f0c411434cb21
+  SDWebImage: 73c6079366fea25fa4bb9640d5fb58f0893facd8
+  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
 
 PODFILE CHECKSUM: 3d74eed5c7f252e23cea7e9c4cc1ded325c9ebc6
 

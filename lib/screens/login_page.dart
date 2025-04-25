@@ -1,9 +1,12 @@
+import 'package:classlift/screens/forgot_password_screen.dart';
+import 'package:classlift/screens/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:classify/components/background_gradient.dart';
-import 'package:classify/components/textfield_label.dart';
-import 'package:classify/components/sign_button_row.dart';
-import 'package:classify/screens/forgot_password_screen.dart';
+import 'package:classlift/components/background_gradient.dart';
+import 'package:classlift/components/textfield_label.dart';
+import 'package:classlift/components/sign_button_row.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:lottie/lottie.dart';
+import 'verification_email_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,6 +25,8 @@ class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _registerFormKey = GlobalKey<FormState>();
 
   bool _isRegistering = false;
+  bool isLoading = false; // Variable para controlar el estado de carga
+
   final ValueNotifier<bool> _passwordObscureNotifier =
   ValueNotifier<bool>(true);
 
@@ -61,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
             // SafeArea para asegurar que el contenido no se vea afectado por el notch o la barra de navegación
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -87,19 +92,19 @@ class _LoginPageState extends State<LoginPage> {
                                     ).createShader(bounds);
                                   },
                                   child: Text(
-                                    'Classify',
+                                    'ClassLift',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 52,
                                       color: Colors
-                                          .white, // Necesitas un color base, se sobrepone el gradiente
+                                          .white,
                                     ),
                                   ),
                                 ),
                               ),
                               SizedBox(
                                 height: MediaQuery.of(context).size.height *
-                                    0.03, // 3% de la altura de la pantalla
+                                    0.03,
                               ),
                               Form(
                                 key: _isRegistering
@@ -108,7 +113,6 @@ class _LoginPageState extends State<LoginPage> {
                                 child: Column(
                                   children: [
                                     if (_isRegistering) ...[
-                                      // Campo de texto para el nombre
                                       TextfieldLabel().buildLabelAndTextField(
                                         label: 'Nombre completo',
                                         controller: _nameController,
@@ -214,8 +218,7 @@ class _LoginPageState extends State<LoginPage> {
                                         obscureText: true,
                                         obscureTextNotifier:
                                         _passwordObscureNotifier,
-                                        keyboardType:
-                                        TextInputType.emailAddress,
+                                        keyboardType: TextInputType.emailAddress,
                                         hintText: 'Confirmá tu contraseña',
                                         validator: (value) {
                                           if (value == null || value.isEmpty) {
@@ -267,73 +270,91 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             child: ElevatedButton(
                               onPressed: () async {
-                                // Validar el formulario de registro o inicio de sesión según corresponda
+
+                                // For testing
+                                // Navigator.of(context).pushReplacement(
+                                //   MaterialPageRoute(builder: (context) => VerificationScreen()),
+                                // );
+
+                                // Validar el formulario según corresponda
                                 if (_isRegistering
                                     ? _registerFormKey.currentState?.validate() ?? false
                                     : _loginFormKey.currentState?.validate() ?? false) {
-                                  // Mostrar un indicador de carga mientras se procesa
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (context) => Center(child: CircularProgressIndicator()),
-                                  );
+                                  setState(() {
+                                    isLoading = true; // Activa el spinner
+                                  });
 
                                   try {
                                     if (_isRegistering) {
                                       // Registro
-                                      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                                      final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
                                         email: _emailController.text.trim(),
                                         password: _passwordController.text.trim(),
                                       );
-                                      Navigator.of(context).pop(); // Cierra el indicador de carga
+
+                                      // Si el registro fue exitoso, enviamos el correo de verificación
+                                      await sendVerificationEmail(userCredential.user);
+
                                       print("Registro exitoso");
+
+                                      // Redirigir a la pantalla de verificación o la pantalla que deseas mostrar
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => VerificationScreen()),
+                                      );
+
                                     } else {
                                       // Inicio de sesión
                                       await FirebaseAuth.instance.signInWithEmailAndPassword(
                                         email: _emailController.text.trim(),
                                         password: _passwordController.text.trim(),
                                       );
-                                      Navigator.of(context).pop(); // Cierra el indicador de carga
+
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(builder: (context) => HomeScreen()),
+                                      );
+
                                       print("Inicio de sesión exitoso");
                                     }
-                                  } on FirebaseAuthException catch (e) {
-                                    Navigator.of(context).pop(); // Cierra el indicador de carga
-                                    // Manejar errores de Firebase
+                                  } // Uso en el manejo de FirebaseAuthException
+                                  on FirebaseAuthException catch (e) {
                                     String errorMessage;
                                     if (e.code == 'email-already-in-use') {
-                                      errorMessage = 'El correo ya está registrado.';
+                                      errorMessage = 'El correo ingresado ya está registrado. '
+                                          'Inicia sesión o recupera tu contraseña desde "¿Olvidaste tu contraseña?".';
                                     } else if (e.code == 'weak-password') {
-                                      errorMessage = 'La contraseña es muy débil.';
+                                      errorMessage = 'La contraseña es muy débil. Usa letras, números y caracteres especiales con al menos 8 caracteres.';
                                     } else if (e.code == 'user-not-found') {
-                                      errorMessage = 'Usuario no encontrado.';
+                                      errorMessage = 'No se encontró ninguna cuenta asociada a este correo. '
+                                          'Verifica o regístrate si no tienes cuenta.';
                                     } else if (e.code == 'wrong-password') {
-                                      errorMessage = 'Contraseña incorrecta.';
+                                      errorMessage = 'La contraseña ingresada es incorrecta. '
+                                          'Verifica o restablece tu contraseña desde "¿Olvidaste tu contraseña?".';
                                     } else {
-                                      errorMessage = 'Ocurrió un error: ${e.message}';
+                                      errorMessage = 'Ocurrió un error. Intenta más tarde o contacta al soporte: ${e.message}.';
                                     }
-                                    // Mostrar mensaje de error
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: Text('Error'),
-                                        content: Text(errorMessage),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(),
-                                            child: Text('OK'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
+
+                                    // Llamar a la función para mostrar el BottomSheet
+                                    showErrorBottomSheet(context, errorMessage);
+                                  } finally {
+                                    setState(() {
+                                      isLoading = false; // Desactiva el spinner
+                                    });
                                   }
                                 }
                               },
-                              child: Text(_isRegistering ? 'Registrate' : 'Iniciá sesión'),
+                              child: isLoading
+                                  ? Lottie.asset('assets/lottie/spinner_4.json',
+                                  width: 35,
+                                  height: 35,
+                                  fit: BoxFit.contain,
+                              ) // Usar el spinner de Lottie
+                                  : Text(_isRegistering ? 'Regístrate' : 'Inicia sesión'),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 50),
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
-                                textStyle: TextStyle(fontSize: 16.0),
                                 elevation: 0,
                               ),
                             ),
@@ -368,7 +389,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -441,7 +462,6 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: _toggleForm,
                   style: TextButton.styleFrom(
                     foregroundColor: Color(0xFF333D86),
-                    textStyle: TextStyle(fontSize: 16),
                   ),
                   child: RichText(
                     text: TextSpan(
@@ -450,14 +470,14 @@ class _LoginPageState extends State<LoginPage> {
                           : '¿No tenés una cuenta? ',
                       style: TextStyle(
                         color: Color(0xFF333D86), // Color base
+                        fontFamily: 'Poppins',
                         fontSize: 16, // Tamaño del texto base
                       ),
                       children: [
                         TextSpan(
                           text: _isRegistering ? 'Iniciá sesión' : 'Registrate',
-                          style: TextStyle(
-                            fontWeight: FontWeight
-                                .bold, // Peso específico para estas palabras
+                          style: const TextStyle(
+                            fontWeight: FontWeight .w600, // Peso específico para estas palabras
                           ),
                         ),
                       ],
@@ -471,4 +491,114 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+}
+
+Future<void> sendVerificationEmail(User? user) async {
+  if (user != null && !user.emailVerified) {
+    try {
+      await user.sendEmailVerification();
+      print("Correo de verificación enviado");
+    } catch (e) {
+      print("Error al enviar el correo de verificación: $e");
+    }
+  }
+}
+
+
+void showErrorBottomSheet(BuildContext context, String errorMessage) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return BottomSheet(
+        onClosing: () {},
+        builder: (context) {
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Espaciado para el botón de cerrar (no visible aquí)
+                    SizedBox(height: 20),
+
+                    // Lottie animation for caution icon
+                    Lottie.asset('assets/lottie/Caution.json', height: 170, width: 170),
+
+                    SizedBox(height: 10),
+
+                    // Título de error
+                    Text(
+                      'Atención',
+                      style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+
+                    // Mensaje de error
+                    Text(
+                      errorMessage,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 18,
+                        color: Colors.grey[700],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    // Botón de OK
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text('Entendí'),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                            backgroundColor: const Color(0xFFFF0000),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+
+                  ],
+                ),
+              ),
+
+              // Botón de cerrar
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop(); // Cierra la pantalla/modal actual
+                  },
+                  child: Lottie.asset(
+                    'assets/lottie/close.json',
+                    height: 50,
+                    width: 50,
+                    repeat: false, // Solo animar una vez
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }

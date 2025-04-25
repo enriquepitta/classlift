@@ -1,4 +1,4 @@
-# classify
+# classlift
 
 A new Flutter project.
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:classify/components/background_gradient.dart';
-import 'package:classify/components/textfield_label.dart';
-import 'package:classify/screens/VerifyEmailPage.dart';
+import 'package:classlift/components/background_gradient.dart';
+import 'package:classlift/components/textfield_label.dart';
+import 'package:classlift/screens/verify_email_screen.dart';
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 
@@ -118,7 +118,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => VerifyEmailPage(
+                                        builder: (context) => VerifyEmailScreen(
                                           email: _emailController.text, // Pasar el correo ingresado
                                         ),
                                       ),
@@ -129,7 +129,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                     minimumSize: const Size(double.infinity, 50),
                                     backgroundColor: Colors.transparent,
                                     foregroundColor: Colors.white,
-                                    textStyle: const TextStyle(fontSize: 16.0),
                                     elevation: 0,
                                   ),
                                 ),
