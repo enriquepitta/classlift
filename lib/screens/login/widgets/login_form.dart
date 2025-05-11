@@ -1,7 +1,8 @@
+import 'package:classlift/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/textfield_label.dart';
+import 'package:go_router/go_router.dart';
 import '../controller/login_controller.dart';
-import '../../forgot_password_screen.dart';
 
 class LoginForm extends StatelessWidget {
   final LoginController controller;
@@ -54,10 +55,7 @@ class LoginForm extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ForgotPasswordPage()),
-                );
+                context.push(AppRoutes.forgotPassword);
               },
               child: Text(
                 '¿Olvidaste tu contraseña?',

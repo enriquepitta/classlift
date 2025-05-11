@@ -11,6 +11,8 @@ import 'package:excel/excel.dart';
 import 'package:lottie/lottie.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -19,9 +21,9 @@ class _HomeScreenState extends State<HomeScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  int _selectedIndex = 0; // Índice para el BottomNavigationBar
-  String? selectedCareerCode; // Definir la variable aquí
-  String? _excelFilePath; // Añade esta variable para almacenar la ruta del archivo
+  int _selectedIndex = 0;
+  String? selectedCareerCode;
+  String? _excelFilePath;
 
   @override
   void initState() {
@@ -45,9 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onFilePicked(String filePath) {
-    // Aquí puedes manejar el archivo seleccionado
     print('Archivo seleccionado: $filePath');
-    // Puedes agregar lógica adicional, como cargar el archivo en la aplicación
   }
 
   Future<void> pickExcelFile() async {
@@ -58,14 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 
       if (result != null) {
-        _excelFilePath = result.files.single.path; // Guarda la ruta del archivo
+        _excelFilePath = result.files.single.path;
         var bytes = await File(_excelFilePath!).readAsBytes();
         var excel = Excel.decodeBytes(bytes);
 
         List<String> availableSheets = excel.tables.keys.toList();
 
         if (availableSheets.isNotEmpty) {
-          if (!mounted) return; // Verifica si el widget sigue en el árbol
+          if (!mounted) return;
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
 
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0), // Ajusta la altura según necesites
+        preferredSize: const Size.fromHeight(70.0),
         child: AppBar(
           title: const Text(
             "Horario de Clases",
@@ -259,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         child: Icon(Icons.add, color: Colors.white),
         backgroundColor: ClassliftColors.SecondaryColor,
-        shape: CircleBorder(), // Asegura que sea completamente redondo
+        shape: CircleBorder(),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
@@ -514,8 +514,7 @@ void showSemesterSelection(BuildContext context, String selectedCareerCode) {
               title: Text('Semestre 1'),
               onTap: () {
                 Navigator.pop(context);
-                // Mostrar selección de materias y turno para el semestre 1
-                // Lógica adicional aquí, utilizando el selectedCareerCode si es necesario
+
               },
             ),
             ListTile(
@@ -523,11 +522,9 @@ void showSemesterSelection(BuildContext context, String selectedCareerCode) {
               title: Text('Semestre 2'),
               onTap: () {
                 Navigator.pop(context);
-                // Mostrar selección de materias y turno para el semestre 2
-                // Lógica adicional aquí, utilizando el selectedCareerCode si es necesario
+
               },
             ),
-            // Agregar más semestres si es necesario
           ],
         ),
       );
