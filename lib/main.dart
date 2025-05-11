@@ -1,4 +1,4 @@
-import 'package:classlift/screens/splash_screen.dart';
+import 'package:classlift/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -18,7 +18,8 @@ class Classlift extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -29,7 +30,6 @@ class Classlift extends StatelessWidget {
           bodyMedium: TextStyle(fontFamily: 'Poppins'),
         ),
       ),
-      home: const SplashScreen(),
       builder: (context, child) {
         return CupertinoTheme(
           data: const CupertinoThemeData(

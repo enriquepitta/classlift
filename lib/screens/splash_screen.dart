@@ -1,6 +1,7 @@
 import 'package:classlift/components/background_gradient.dart';
-import 'package:classlift/screens/login/login_page.dart';
+import 'package:classlift/router/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -23,9 +24,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   void _navigateToNextScreen() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
+    context.go(AppRoutes.login);
   }
 
   @override

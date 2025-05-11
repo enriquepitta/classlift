@@ -43,6 +43,12 @@ class _BottomSectionState extends State<BottomSection> {
             ),
             child: ElevatedButton(
               onPressed: () => controller.handleAuthAction((loading) => setState(() => controller.isLoading = loading)),
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, buttonHeight),
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
               child: controller.isLoading
                   ? Lottie.asset('assets/lottie/spinner_4.json', width: 35, height: 35)
                   : Text(
@@ -50,12 +56,6 @@ class _BottomSectionState extends State<BottomSection> {
                 style: TextStyle(
                   fontSize: controller.getAdaptiveSize(context, defaultSize: 16.0, smallSize: 15.0, largeSize: 17.0),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, buttonHeight),
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                elevation: 0,
               ),
             ),
           ),

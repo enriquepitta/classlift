@@ -1,15 +1,17 @@
+import 'package:classlift/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/background_gradient.dart';
 import 'package:classlift/components/textfield_label.dart';
 import 'package:classlift/screens/verify_email_screen.dart';
-class ForgotPasswordPage extends StatefulWidget {
-  const ForgotPasswordPage({super.key});
+import 'package:go_router/go_router.dart';
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
-  _ForgotPasswordPageState createState() => _ForgotPasswordPageState();
+  _ForgotPasswordScreenState createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
 
   @override
@@ -22,10 +24,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         },
         child: Stack(
           children: [
-            // Fondo con gradiente
             const BackgroundGradient(),
-
-            // Contenido principal
             SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +37,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
-                        Navigator.pop(context);
+                        context.pop();
                       },
                     ),
                   ),
