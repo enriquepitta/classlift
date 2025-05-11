@@ -52,7 +52,7 @@ class SuccessScreen extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

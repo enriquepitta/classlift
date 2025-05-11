@@ -29,12 +29,12 @@ class Classlift extends StatelessWidget {
           bodyMedium: TextStyle(fontFamily: 'Poppins'),
         ),
       ),
-      home: SplashScreen(),
+      home: const SplashScreen(),
       builder: (context, child) {
         return CupertinoTheme(
-          data: CupertinoThemeData(
+          data: const CupertinoThemeData(
             textTheme: CupertinoTextThemeData(
-              textStyle: const TextStyle(fontFamily: 'Poppins'),
+              textStyle: TextStyle(fontFamily: 'Poppins'),
             ),
           ),
           child: child!,

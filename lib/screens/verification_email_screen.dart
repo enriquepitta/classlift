@@ -4,36 +4,48 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lottie/lottie.dart';
 import 'package:classlift/components/background_gradient.dart';
-import 'forgot_password_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   @override
   _VerificationScreenState createState() => _VerificationScreenState();
 }
 
-class _VerificationScreenState extends State<VerificationScreen> {
-  bool _isResendEnabled = false; // Control del botón de reenviar
-  bool _isVerified = false; // Estado del botón de "Ya verifiqué mi correo"
-  int _timeRemaining = 30; // Tiempo restante para reenviar el código
+class _VerificationScreenState extends State<VerificationScreen> with SingleTickerProviderStateMixin {
+  bool _isResendEnabled = false;
+  bool _isVerified = false;
+  int _timeRemaining = 30;
   late Timer _timer;
   late Timer _verificationCheckTimer;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // 🔵 Para la animación
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
-    _startTimer(); // Iniciar temporizador para reenviar código
-    _startVerificationCheck(); // Iniciar verificación periódica del correo
+    _startTimer();
+    _startVerificationCheck();
+
+    // 🔵 Inicializar animación
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_animationController);
+
+    // 🔵 Iniciar animación al construir la pantalla
+    _animationController.forward();
   }
 
-  // Función para iniciar el temporizador de reenvío
   void _startTimer() {
     setState(() {
       _isResendEnabled = false;
       _timeRemaining = 30;
     });
 
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_timeRemaining > 0) {
           _timeRemaining--;
@@ -45,16 +57,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
     });
   }
 
-  // Función para verificar periódicamente si el correo está verificado
   void _startVerificationCheck() {
-    _verificationCheckTimer = Timer.periodic(Duration(seconds: 5), (timer) async {
-      await _auth.currentUser?.reload(); // Actualizar información del usuario
+    _verificationCheckTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      await _auth.currentUser?.reload();
       if (_auth.currentUser?.emailVerified == true) {
         setState(() {
-          _isVerified = true; // Habilitar el botón
+          _isVerified = true;
           getIdToken();
         });
-        _verificationCheckTimer.cancel(); // Detener la verificación
+        _verificationCheckTimer.cancel();
       }
     });
   }
@@ -63,19 +74,23 @@ class _VerificationScreenState extends State<VerificationScreen> {
   void dispose() {
     _timer.cancel();
     _verificationCheckTimer.cancel();
+    _animationController.dispose(); // 🔵 Liberar la animación
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final String? fullName = FirebaseAuth.instance.currentUser?.displayName;
+    final String firstName = fullName?.split(' ').first ?? 'Usuario';
+
     return Scaffold(
       body: GestureDetector(
         onTap: () {
-          FocusScope.of(context).unfocus(); // Ocultar teclado
+          FocusScope.of(context).unfocus();
         },
         child: Stack(
           children: [
-            const BackgroundGradient(), // Fondo con gradiente
+            const BackgroundGradient(),
 
             SafeArea(
               child: Column(
@@ -83,7 +98,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 children: [
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: SingleChildScrollView(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,17 +113,33 @@ class _VerificationScreenState extends State<VerificationScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
+
+                            // 🔵 Fade-in en el saludo
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: Text(
+                                '¡Hola, $firstName!',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
                             const Text(
                               'Verificá tu correo electrónico',
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 26,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: 20),
+
                             const Text(
-                              'Te hemos enviado un correo de verificación a la dirección que proporcionaste. Revisa tu bandeja de entrada y confirmá tu dirección de correo electrónico',
+                              'Te hemos enviado un correo de verificación a la dirección que proporcionaste. Revisa tu bandeja de entrada y confirmá tu dirección de correo electrónico.',
                               style: TextStyle(color: Colors.white),
                             ),
                             const SizedBox(height: 20),
@@ -130,7 +161,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.all(30.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -140,8 +171,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                            SuccessScreen(),
+                            builder: (context) => SuccessScreen(),
                           ),
                         );
                       }
@@ -205,9 +235,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 Future<String?> getIdToken() async {
   User? user = FirebaseAuth.instance.currentUser;
   if (user != null) {
-    // Obtén el ID Token del usuario autenticado
-    String? idToken = await user.getIdToken();
-    return idToken;
+    return await user.getIdToken();
   } else {
     throw Exception("No user is signed in");
   }

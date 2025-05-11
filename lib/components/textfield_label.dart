@@ -8,11 +8,12 @@ class TextfieldLabel extends StatelessWidget {
     required TextEditingController controller,
     required IconData icon,
     required bool obscureText,
-    required ValueNotifier<bool>
-        obscureTextNotifier, // Para manejar el estado dinámico
-    String? hintText, // HintText personalizado
+    required ValueNotifier<bool> obscureTextNotifier,
+    String? hintText,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
+    FocusNode? focusNode,
+    FocusNode? nextFocusNode,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -33,43 +34,52 @@ class TextfieldLabel extends StatelessWidget {
               controller: controller,
               obscureText: isObscure,
               keyboardType: keyboardType,
+              focusNode: focusNode,
+              textInputAction: nextFocusNode != null
+                  ? TextInputAction.next
+                  : TextInputAction.done,
+              onFieldSubmitted: (_) {
+                if (nextFocusNode != null && nextFocusNode!.context != null) {
+                  FocusScope.of(context).requestFocus(nextFocusNode);
+                } else {
+                  FocusScope.of(context).unfocus();
+                }
+              },
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Color(0xFFF0F0F0),
-                // Color de fondo suave
                 prefixIcon: Icon(icon, color: Color(0xFF66788A)),
-                // Icono inicial
                 suffixIcon: obscureText
                     ? IconButton(
-                        icon: Icon(
-                          isObscure ? Icons.visibility_off : Icons.visibility,
-                          color: Color(0xFF66788A),
-                        ),
-                        onPressed: () {
-                          obscureTextNotifier.value = !isObscure;
-                        },
-                      )
+                  icon: Icon(
+                    isObscure ? Icons.visibility_off : Icons.visibility,
+                    color: Color(0xFF66788A),
+                  ),
+                  onPressed: () {
+                    obscureTextNotifier.value = !isObscure;
+                  },
+                )
                     : null,
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 18.0, // Incrementa el padding vertical
+                  vertical: 16.0,
                   horizontal: 16.0,
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
-                  borderSide: BorderSide.none, // Sin borde, solo fondo
+                  borderSide: BorderSide.none,
                   gapPadding: 0,
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                   borderSide: BorderSide(
-                    color: Color(0xFF4C9AFF), // Azul para el estado enfocado
+                    color: Color(0xFF4C9AFF),
                     width: 2.0,
                   ),
                 ),
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                   borderSide: BorderSide(
-                    color: Color(0xFFA41E25), // Borde moderno en rojo
+                    color: Color(0xFFA41E25),
                     width: 2.0,
                   ),
                 ),
@@ -77,34 +87,28 @@ class TextfieldLabel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10.0),
                   borderSide: BorderSide(
                     color: Color(0xFFA41E25),
-                    // Borde más oscuro para error enfocado
                     width: 2.0,
                   ),
                 ),
                 hintText: hintText ?? 'Ingresá tu ${label.toLowerCase()}',
                 hintStyle: TextStyle(
                   color: Color(0xFF66788A).withOpacity(0.6),
-                  // Color grisáceo para el hint
                   fontSize: 16,
                   fontWeight: FontWeight.w400,
                 ),
                 isDense: true,
-                // Espaciado más compacto
                 errorStyle: TextStyle(
                   color: Color(0xFFA41E25),
-                  // Rojo para el texto del error (moderno y visible)
                   fontSize: 14.0,
-                  // Tamaño compacto
-                  height: 1.4, // Espaciado ajustado
+                  height: 1.4,
                 ),
                 helperText: null,
-                // Opcional: Puedes agregar un mensaje auxiliar elegante aquí
                 helperStyle: TextStyle(
-                  color: Color(0xFF66788A), // Color auxiliar suave
+                  color: Color(0xFF66788A),
                   fontSize: 14.0,
                   fontWeight: FontWeight.w300,
                 ),
-                errorMaxLines: 2, // Permite texto más largo para errores
+                errorMaxLines: 2,
               ),
               validator: validator,
             );
@@ -116,6 +120,6 @@ class TextfieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(); // Este método se mantiene vacío para este widget.
+    return Container();
   }
 }
