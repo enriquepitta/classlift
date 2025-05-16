@@ -1,4 +1,5 @@
 import 'package:classlift/router/app_routes.dart';
+import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/textfield_label.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +7,7 @@ import '../controller/login_controller.dart';
 
 class LoginForm extends StatelessWidget {
   final LoginController controller;
-  final double spacing;
+  final double spacing; // Mantenemos este parámetro para compatibilidad
 
   const LoginForm({
     super.key,
@@ -21,6 +22,7 @@ class LoginForm extends StatelessWidget {
       child: Column(
         key: const ValueKey('login_form'),
         children: [
+          // Campo de correo electrónico
           TextfieldLabel().buildLabelAndTextField(
             label: 'Correo electrónico',
             controller: controller.emailController,
@@ -38,19 +40,26 @@ class LoginForm extends StatelessWidget {
               return null;
             },
           ),
-          SizedBox(height: spacing),
+
+          // Espaciado entre campos usando ResponsiveUtils
+          SizedBox(height: ResponsiveUtils.spacing(context, 'dm')),
+
+          // Campo de contraseña - ahora usando buildLabelAndTextField
           TextfieldLabel().buildLabelAndTextField(
             label: 'Contraseña',
             controller: controller.passwordController,
             icon: Icons.lock,
             obscureText: true,
             obscureTextNotifier: controller.passwordObscureNotifier,
+            hintText: 'Ingresá tu contraseña',
             focusNode: controller.passwordFocusNode,
             validator: (value) {
               if (value == null || value.isEmpty) return 'Por favor ingresa una contraseña';
               return null;
             },
           ),
+
+          // Enlace de contraseña olvidada
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
@@ -61,7 +70,7 @@ class LoginForm extends StatelessWidget {
                 '¿Olvidaste tu contraseña?',
                 style: TextStyle(
                   color: const Color(0xFF333D86),
-                  fontSize: controller.getAdaptiveSize(context, defaultSize: 16, smallSize: 14, largeSize: 16),
+                  fontSize: ResponsiveUtils.fontStyle(context, 'button'),
                 ),
               ),
             ),

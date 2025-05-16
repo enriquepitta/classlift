@@ -16,7 +16,7 @@ class SignInWithAppleButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Color(0xFFE3F0F9), // Fondo negro de Apple
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10), // Bordes ligeramente redondeados
+            borderRadius: BorderRadius.circular(12), // Bordes ligeramente redondeados
             side: BorderSide(color: Color(0xFF91B0FE), width: 1.5), // Borde negro
           ),
           padding: EdgeInsets.zero, // Sin relleno

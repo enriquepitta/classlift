@@ -65,17 +65,6 @@ class LoginController {
     FocusScope.of(context).unfocus();
   }
 
-  double getAdaptiveSize(BuildContext context, {
-    required double defaultSize,
-    double? smallSize,
-    double? largeSize,
-  }) {
-    final width = MediaQuery.of(context).size.width;
-    if (width <= 375 && smallSize != null) return smallSize;
-    if (width >= 428 && largeSize != null) return largeSize;
-    return defaultSize;
-  }
-
   Future<void> handleAuthAction(Function(bool) setLoading) async {
     final isValid = isRegisteringNotifier.value
         ? registerFormKey.currentState?.validate() ?? false
@@ -136,6 +125,10 @@ class LoginController {
     emailFocusNode.dispose();
     passwordFocusNode.dispose();
     confirmPasswordFocusNode.dispose();
+  }
+
+  void toggleRegistering() {
+    isRegisteringNotifier.value = !isRegisteringNotifier.value;
   }
 }
 

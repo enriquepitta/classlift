@@ -22,14 +22,14 @@ final GoRouter appRouter = GoRouter (
         child: const LoginScreen(),
       ),
     ),
+    GoRoute( path: '/home',
+      builder: (context, state) => const HomeScreen(),
+    ),
     GoRoute(path: '/forgot-password',
         pageBuilder: (context, state) => buildIOSPageTransition(
           key: state.pageKey,
           child: const ForgotPasswordScreen(),
         ),
-    ),
-    GoRoute( path: '/home',
-      builder: (context, state) => const HomeScreen(),
     ),
   ]
 );

@@ -1,40 +1,46 @@
+// Archivo: lib/components/sign_in_buttons_row.dart
+import 'package:classlift/screens/login/widgets/social_sign_button.dart';
 import 'package:flutter/material.dart';
-import 'package:classlift/components/sign_google_button.dart';
-import 'package:classlift/components/sign_facebook_button.dart';
-import 'package:classlift/components/sign_apple_button.dart';
 
 class SignInButtonsRow extends StatelessWidget {
   final VoidCallback onGooglePressed;
   final VoidCallback onFacebookPressed;
   final VoidCallback onApplePressed;
+  final bool showShadow;
+  final double spacing;
 
   const SignInButtonsRow({
     Key? key,
     required this.onGooglePressed,
     required this.onFacebookPressed,
     required this.onApplePressed,
+    this.showShadow = false,
+    this.spacing = 8.0,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center, // Centra los botones en el eje horizontal
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Expanded(
-          child: SignInWithFacebookButton(
+          child: SocialSignInButton.facebook(
             onPressed: onFacebookPressed,
+            showShadow: showShadow,
           ),
         ),
-        SizedBox(width: 8), // Espacio de 2 píxeles entre los botones
+        SizedBox(width: spacing),
         Expanded(
-          child: SignInWithGoogleButton(
+          child: SocialSignInButton.google(
             onPressed: onGooglePressed,
+            showShadow: showShadow,
           ),
         ),
-        SizedBox(width: 8), // Espacio de 2 píxeles entre los botones
+        SizedBox(width: spacing),
         Expanded(
-          child: SignInWithAppleButton(
+          child: SocialSignInButton.apple(
             onPressed: onApplePressed,
+            showShadow: showShadow,
           ),
         ),
       ],

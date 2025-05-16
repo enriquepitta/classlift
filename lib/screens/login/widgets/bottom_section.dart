@@ -1,5 +1,6 @@
+import 'package:classlift/utils/responsive_utils.dart';
+import 'package:classlift/widgets/primary_action_button.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import '../controller/login_controller.dart';
 
 class BottomSection extends StatefulWidget {
@@ -16,48 +17,35 @@ class _BottomSectionState extends State<BottomSection> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
 
+    // Utilizamos valores predefinidos para el espaciado
+    // Si el teclado está visible, usamos un espaciado más pequeño
     final bottomPadding = controller.isKeyboardVisible
-        ? controller.getAdaptiveSize(context, defaultSize: 15.0, smallSize: 10.0, largeSize: 20.0)
-        : controller.getAdaptiveSize(context, defaultSize: 30.0, smallSize: 20.0, largeSize: 30.0);
-
-    final buttonHeight = controller.getAdaptiveSize(context, defaultSize: 50.0, smallSize: 45.0, largeSize: 55.0);
+        ? ResponsiveUtils.spacing(context, 'sm')
+        : ResponsiveUtils.spacing(context, 'lg');
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
-      padding: EdgeInsets.only(top: 30, bottom: bottomPadding),
+      // Espaciado superior constante usando el método spacing
+      padding: EdgeInsets.only(
+        top: ResponsiveUtils.spacing(context, 'lg'),
+        bottom: bottomPadding,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF4E7AB5),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFA3C1E2).withOpacity(0.5),
-                  offset: const Offset(0, 3),
-                  blurRadius: 5,
+          ValueListenableBuilder<bool>(
+            valueListenable: controller.isRegisteringNotifier,
+            builder: (context, isRegistering, _) {
+              return ResponsiveActionButton(
+                onPressed: () => controller.handleAuthAction(
+                        (loading) => setState(() => controller.isLoading = loading)
                 ),
-              ],
-            ),
-            child: ElevatedButton(
-              onPressed: () => controller.handleAuthAction((loading) => setState(() => controller.isLoading = loading)),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, buttonHeight),
-                backgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                elevation: 0,
-              ),
-              child: controller.isLoading
-                  ? Lottie.asset('assets/lottie/spinner_4.json', width: 35, height: 35)
-                  : Text(
-                controller.isRegisteringNotifier.value ? 'Regístrate' : 'Iniciá sesión',
-                style: TextStyle(
-                  fontSize: controller.getAdaptiveSize(context, defaultSize: 16.0, smallSize: 15.0, largeSize: 17.0),
-                ),
-              ),
-            ),
+                isLoading: controller.isLoading,
+                text: isRegistering ? 'Regístrate' : 'Iniciá sesión',
+                backgroundColor: const Color(0xFF4E7AB5),
+              );
+            },
           ),
         ],
       ),

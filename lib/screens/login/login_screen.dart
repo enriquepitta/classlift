@@ -1,5 +1,5 @@
+import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:classlift/components/background_gradient.dart';
 import 'controller/login_controller.dart';
 import 'widgets/login_form.dart';
@@ -33,10 +33,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    final horizontalPadding = _controller.getAdaptiveSize(context, defaultSize: 20, smallSize: 16, largeSize: 24);
-    final topPadding = _controller.isRegisteringNotifier.value
-        ? _controller.getAdaptiveSize(context, defaultSize: 20.0, smallSize: 10.0, largeSize: 0.0)
-        : _controller.getAdaptiveSize(context, defaultSize: 50.0, smallSize: 30.0, largeSize: 0.0);
+
+    // Padding screen
+    final horizontalPadding = ResponsiveUtils.padding(context, 'screen');
+
+    // paddings valores personalizados
+    final double topPadding;
+    if (_controller.isRegisteringNotifier.value) {
+      topPadding = ResponsiveUtils.getAdaptiveSize(context, small: 10.0, medium: 20.0, large: 0.0);
+    } else {
+      topPadding = ResponsiveUtils.getAdaptiveSize(context, small: 30.0, medium: 50.0, large: 0.0);
+    }
+
     final spacing = screenSize.height * 0.025;
 
     return Scaffold(
@@ -64,8 +72,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                LoginTitle(animation: _controller.titleAnimation, fontSize: _controller.getAdaptiveSize(context, defaultSize: 45, smallSize: 42, largeSize: 52)),
-                                const SizedBox(height: 30),
+                                // Usa el estilo predefinido para títulos
+                                LoginTitle(
+                                  animation: _controller.titleAnimation,
+                                  fontSize: ResponsiveUtils.fontStyle(context, 'title'),
+                                ),
+                                SizedBox(
+                                  // Usa espaciado predefinido grande
+                                  height: ResponsiveUtils.spacing(context, 'lg'),
+                                ),
                                 ValueListenableBuilder<bool>(
                                   valueListenable: _controller.isRegisteringNotifier,
                                   builder: (context, isRegistering, _) {

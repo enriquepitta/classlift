@@ -1,3 +1,4 @@
+import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/sign_button_row.dart';
 import '../controller/login_controller.dart';
@@ -16,19 +17,11 @@ class _BottomNavigationState extends State<BottomNavigation> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
 
-    final bottomSectionPadding = controller.getAdaptiveSize(
-      context,
-      defaultSize: 20.0,
-      smallSize: 16.0,
-      largeSize: 24.0,
-    );
+    // Utilizamos los métodos predefinidos de ResponsiveUtils
+    final bottomSectionPadding = ResponsiveUtils.padding(context, 'screen');
 
-    final verticalSpacing = controller.getAdaptiveSize(
-      context,
-      defaultSize: 20.0,
-      smallSize: 15.0,
-      largeSize: 25.0,
-    );
+    // Para espaciados verticales entre elementos utilizamos el método spacing
+    final verticalSpacing = ResponsiveUtils.spacing(context, 'lg');
 
     return Container(
       decoration: const BoxDecoration(
@@ -51,6 +44,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
                   Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
                 ],
               ),
+              // Utilizamos SizedBox con el espaciado predefinido
               SizedBox(height: verticalSpacing),
               SignInButtonsRow(
                 onGooglePressed: () => print("Google"),
@@ -70,18 +64,14 @@ class _BottomNavigationState extends State<BottomNavigation> {
                         text: isRegistering ? '¿Ya tenés una cuenta? ' : '¿No tenés una cuenta? ',
                         style: TextStyle(
                           color: const Color(0xFF333D86),
-                          fontSize: controller.getAdaptiveSize(
-                            context,
-                            defaultSize: 16.0,
-                            smallSize: 14.0,
-                            largeSize: 16.0,
-                          ),
+                          // Utilizamos fontStyle para textos
+                          fontSize: ResponsiveUtils.fontStyle(context, 'body'),
                           fontFamily: 'Poppins',
                         ),
                         children: [
                           TextSpan(
                             text: isRegistering ? 'Iniciá sesión' : 'Registrate',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),

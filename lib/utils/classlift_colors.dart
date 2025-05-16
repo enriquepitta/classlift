@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class ClassliftColors {
   static const Color PrimaryColor = Color(0xFF333D86); // Azul oscuro
   static const Color SecondaryColor = Color(0xFFA3C1E2); // Azul claro
+  static const Color PrimaryColorVariant = Color(0xFF4E7AB5); // Azul claro
   static const Color AccentColor = Color(0xFFFF6F61); // Coral
   static const Color BackgroundColor = Color(0xFFF5F5F5); // Gris claro
   static const Color TextColor = Color(0xFF333333); // Gris oscuro
