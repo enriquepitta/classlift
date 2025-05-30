@@ -115,14 +115,14 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
                                 GestureDetector(
                                   onTap: () => Navigator.of(context).pop(),
                                   child: Container(
-                                    padding: const EdgeInsets.all(4),
+                                    padding: const EdgeInsets.all(5),
                                     decoration: BoxDecoration(
                                       color: secondaryBlue.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(50),
                                     ),
                                     child: Icon(
                                       CupertinoIcons.xmark,
-                                      size: iconSize - 2,
+                                      size: iconSize - 4,
                                       color: primaryBlue,
                                     ),
                                   ),
@@ -215,15 +215,14 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
                               top: false,
                               child: Padding(
                                 padding: EdgeInsets.only(bottom: hasHomeIndicator ? 0 : 2),
-                                child: ResponsiveActionButton(
+                                child: PrimaryButton(
                                   onPressed: () => Navigator.of(context).pop(),
                                   isLoading: false,
                                   text: 'Entendí',
                                   backgroundColor: secondaryBlue,
                                   textColor: white,
-                                  borderRadius: ResponsiveUtils.borderRadius(context, 'md'),
                                   adaptToParent: false,
-                                  enableShadow: true,
+                                  enableShadow: false,
                                   shadowColor: secondaryBlue.withOpacity(0.8),
                                 ),
                               ),

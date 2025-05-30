@@ -1,117 +1,132 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+import 'package:classlift/utils/responsive_utils.dart';
+import 'package:classlift/utils/classlift_colors.dart';
 
-class ResponsiveActionButton extends StatelessWidget {
+class PrimaryButton extends StatelessWidget {
   final VoidCallback onPressed;
-  final bool isLoading;
   final String text;
-  final Widget? icon;
+  final bool isLoading;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final double? borderRadius;
   final bool adaptToParent;
-
-  // Colores y estilos personalizables
-  final Color backgroundColor;
-  final Color textColor;
-  final double borderRadius;
-
-  // Control de sombra con un booleano
+  final EdgeInsets? padding;
   final bool enableShadow;
   final Color? shadowColor;
+  final double? minWidth;
+  final double? minHeight;
+  final Widget? leadingIcon;
+  final Widget? trailingIcon;
 
-  const ResponsiveActionButton({
-    super.key,
+  const PrimaryButton({
+    Key? key,
     required this.onPressed,
-    required this.isLoading,
     required this.text,
-    this.icon,
+    this.isLoading = false,
+    this.backgroundColor,
+    this.textColor,
+    this.borderRadius,
     this.adaptToParent = true,
-    this.backgroundColor = const Color(0xFF4E7AB5),
-    this.textColor = Colors.white,
-    this.borderRadius = 12.0,
-    this.enableShadow = true,
+    this.padding,
+    this.enableShadow = false,
     this.shadowColor,
-  });
+    this.minWidth,
+    this.minHeight,
+    this.leadingIcon,
+    this.trailingIcon,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Usar MediaQuery para obtener información sobre el dispositivo
-    final screenSize = MediaQuery.of(context).size;
-    final isSmallDevice = screenSize.width < 360;
-    final isLargeDevice = screenSize.width > 600;
+    // Colores predeterminados desde el tema de ClassLift
+    final Color bgColor = backgroundColor ?? ClassliftColors.PrimaryColor;
+    final Color txtColor = textColor ?? ClassliftColors.White;
+    final Color btnShadowColor = shadowColor ?? bgColor.withOpacity(0.4);
 
-    return adaptToParent
-        ? _buildWithLayoutBuilder(context, isSmallDevice, isLargeDevice)
-        : _buildWithMediaQuery(context, isSmallDevice, isLargeDevice);
-  }
-
-  Widget _buildWithLayoutBuilder(BuildContext context, bool isSmallDevice, bool isLargeDevice) {
-    return LayoutBuilder(
-        builder: (context, constraints) {
-          // Ajustar basado en el espacio disponible en el padre
-          final buttonHeight = constraints.maxWidth < 200 ? 40.0 :
-          constraints.maxWidth < 300 ? 45.0 :
-          constraints.maxWidth < 600 ? 50.0 : 55.0;
-
-          final fontSize = constraints.maxWidth < 200 ? 14.0 :
-          constraints.maxWidth < 300 ? 15.0 :
-          constraints.maxWidth < 600 ? 16.0 : 17.0;
-
-          final buttonWidth = constraints.maxWidth;
-
-          return _buildButton(buttonWidth, buttonHeight, fontSize);
-        }
+    // Valores responsivos para los diversos elementos
+    final double btnBorderRadius = borderRadius ?? ResponsiveUtils.borderRadius(context, 'md');
+    final double btnFontSize = ResponsiveUtils.fontStyle(context, 'button');
+    final double btnHeight = minHeight ?? ResponsiveUtils.getAdaptiveSize(
+      context,
+      small: 44.0,
+      medium: 55.0,
+      large: 55.0,
     );
-  }
 
-  Widget _buildWithMediaQuery(BuildContext context, bool isSmallDevice, bool isLargeDevice) {
-    // Ajustar basado en el tamaño de la pantalla
-    final buttonHeight = isSmallDevice ? 45.0 : isLargeDevice ? 55.0 : 50.0;
-    final fontSize = isSmallDevice ? 15.0 : isLargeDevice ? 17.0 : 16.0;
+    // Padding interno responsivo
+    final EdgeInsets btnPadding = padding ?? EdgeInsets.symmetric(
+      horizontal: ResponsiveUtils.padding(context, 'element'),
+      vertical: ResponsiveUtils.spacing(context, 'xs'),
+    );
 
-    return _buildButton(double.infinity, buttonHeight, fontSize);
-  }
+    // Espacio entre iconos y texto
+    final double iconSpacing = ResponsiveUtils.spacing(context, 'xs');
 
-  Widget _buildButton(double width, double height, double fontSize) {
-    // Definir la sombra predeterminada
-    final defaultShadowColor = shadowColor ?? const Color(0xFFA3C1E2);
+    // Tamaño responsivo del spinner de carga
+    final double loaderSize = ResponsiveUtils.iconSize(context, 'sm');
+
+    // Elevación basada en si el sombreado está habilitado
+    final double elevation = enableShadow ? 4.0 : 0.0;
+
+    // Fuente para el texto del botón
+    final FontWeight fontWeight = ResponsiveUtils.fontWeight(context, 'semibold');
 
     return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(borderRadius),
-        // Aplicar sombra solo si enableShadow es true
-        boxShadow: enableShadow
-            ? [
+      width: double.infinity,
+      height: btnHeight,
+      decoration: enableShadow ? BoxDecoration(
+        borderRadius: BorderRadius.circular(btnBorderRadius),
+        boxShadow: [
           BoxShadow(
-            color: defaultShadowColor.withOpacity(0.5),
-            offset: const Offset(0, 3),
-            blurRadius: 5,
+            color: btnShadowColor,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ]
-            : null,
-      ),
+        ],
+      ) : null,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          minimumSize: Size(width, height),
-          backgroundColor: Colors.transparent,
-          foregroundColor: textColor,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          backgroundColor: bgColor,
+          foregroundColor: txtColor,
+          disabledBackgroundColor: bgColor.withOpacity(0.7),
+          disabledForegroundColor: txtColor.withOpacity(0.7),
+          padding: btnPadding,
+          elevation: elevation,
+          shadowColor: enableShadow ? btnShadowColor : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(btnBorderRadius),
+          ),
+          minimumSize: Size(0, btnHeight),
         ),
         child: isLoading
-            ? Lottie.asset('assets/lottie/spinner_4.json', width: 30, height: 30)
+            ? SizedBox(
+          width: loaderSize,
+          height: loaderSize,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            valueColor: AlwaysStoppedAnimation<Color>(txtColor),
+          ),
+        )
             : Row(
+          mainAxisSize: adaptToParent ? MainAxisSize.max : MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[
-              icon!,
-              const SizedBox(width: 8),
+            if (leadingIcon != null) ...[
+              leadingIcon!,
+              SizedBox(width: iconSpacing),
             ],
             Text(
               text,
-              style: TextStyle(fontSize: fontSize),
+              style: TextStyle(
+                fontSize: btnFontSize,
+                fontWeight: fontWeight,
+              ),
             ),
+            if (trailingIcon != null) ...[
+              SizedBox(width: iconSpacing),
+              trailingIcon!,
+            ],
           ],
         ),
       ),

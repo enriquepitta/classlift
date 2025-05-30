@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           child: AnimatedPadding(
                             duration: const Duration(milliseconds: 500),
                             curve: Curves.easeInOut,
-                            padding: EdgeInsets.only(top: topPadding),
+                            padding: const EdgeInsets.only(top: 0.0),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                                 SizedBox(
                                   // Usa espaciado predefinido grande
-                                  height: ResponsiveUtils.spacing(context, 'lg'),
+                                  height: ResponsiveUtils.spacing(context, 'md'),
                                 ),
                                 ValueListenableBuilder<bool>(
                                   valueListenable: _controller.isRegisteringNotifier,

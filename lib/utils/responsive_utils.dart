@@ -12,13 +12,13 @@ class ResponsiveUtils {
 
   // Fuentes predefinidas
   static const Map<String, Map<String, double>> _fontSizes = {
-    'title': {'small': 32, 'medium': 64, 'large': 64},
+    'title': {'small': 32, 'medium': 54, 'large': 54},
     'heading': {'small': 24, 'medium': 28, 'large': 32},
     'subheading': {'small': 18, 'medium': 20, 'large': 22},
     'body': {'small': 14, 'medium': 16, 'large': 18},
     'caption': {'small': 12, 'medium': 13, 'large': 14},
     'button': {'small': 14, 'medium': 16, 'large': 17},
-    'input': {'small': 14, 'medium': 16, 'large': 18},
+    'input': {'small': 14, 'medium': 18, 'large': 16},
     'label': {'small': 16, 'medium': 17, 'large': 18}, // Añadido para labels de TextfieldLabel
   };
 
@@ -28,8 +28,8 @@ class ResponsiveUtils {
     'xs': {'small': 4, 'medium': 8, 'large': 10},
     'sm': {'small': 8, 'medium': 12, 'large': 16},
     'dm': {'small': 10, 'medium': 20, 'large': 20},
-    'md': {'small': 16, 'medium': 24, 'large': 32},
-    'lg': {'small': 24, 'medium': 30, 'large': 40},
+    'md': {'small': 16, 'medium': 24, 'large': 26},
+    'lg': {'small': 24, 'medium': 30, 'large': 30},
     'xl': {'small': 32, 'medium': 40, 'large': 48},
     'xxl': {'small': 40, 'medium': 48, 'large': 56},
   };
@@ -93,11 +93,11 @@ class ResponsiveUtils {
 
   static bool isMediumPlusScreen(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    return width > kMediumScreenWidth && width <= kMediumPlusScreenWidth;
+    return width > kMediumScreenWidth && width < kMediumPlusScreenWidth;
   }
 
   static bool isLargeScreen(BuildContext context) {
-    return MediaQuery.of(context).size.width > kMediumPlusScreenWidth;
+    return MediaQuery.of(context).size.width >= kMediumPlusScreenWidth;
   }
 
   /// Obtener el tamaño de pantalla actual como string
@@ -213,4 +213,20 @@ class ResponsiveUtils {
     return "Dispositivo: $deviceType, Dimensiones: ${width.toInt()}x${height.toInt()} pt, "
         "Ratio: ${ratio.toStringAsFixed(2)}, Escala: ${pixelRatio.toStringAsFixed(1)}x";
   }
+
+  // Método para agregar a ResponsiveUtils
+  static bool hasBottomSafeArea(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+    return bottomPadding > 0;
+  }
+
+  // Método para obtener el espaciado óptimo según el dispositivo
+  static double getBottomSafeSpacing(BuildContext context, {
+    double withSafeArea = 0.0,  // Espaciado para dispositivos con notch/home indicator
+    double withoutSafeArea = 8.0,  // Espaciado para dispositivos sin notch/home indicator
+  }) {
+    return hasBottomSafeArea(context) ? withSafeArea : withoutSafeArea;
+  }
+
+
 }

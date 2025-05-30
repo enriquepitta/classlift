@@ -21,7 +21,22 @@ class _BottomNavigationState extends State<BottomNavigation> {
     final bottomSectionPadding = ResponsiveUtils.padding(context, 'screen');
 
     // Para espaciados verticales entre elementos utilizamos el método spacing
-    final verticalSpacing = ResponsiveUtils.spacing(context, 'lg');
+    final double verticalSpacing = ResponsiveUtils.spacing(context, 'md');
+
+    // Detectamos si el dispositivo tiene zona segura inferior
+    final bool hasBottomSafeArea = MediaQuery.of(context).viewPadding.bottom > 0;
+
+    // Ajustamos el espaciado final según si tiene o no zona segura
+    final double bottomSpacing = hasBottomSafeArea
+        ? verticalSpacing  // Reducimos el espaciado si ya tiene safe area
+        : 0.0;       // Mantenemos el espaciado normal si no tiene safe area
+
+    // También podríamos usar el método propuesto
+    // final double bottomSpacing = ResponsiveUtils.getBottomSafeSpacing(
+    //   context,
+    //   withSafeArea: verticalSpacing * 0.5,
+    //   withoutSafeArea: verticalSpacing
+    // );
 
     return Container(
       decoration: const BoxDecoration(
@@ -31,56 +46,56 @@ class _BottomNavigationState extends State<BottomNavigation> {
           colors: [Color(0xFFFFFFFF), Color(0xFF4E7AB5)],
         ),
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: bottomSectionPadding),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Row(
-                children: [
-                  Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
-                  Text(' O continuá con ', style: TextStyle(color: Color(0xFF333D86))),
-                  Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
-                ],
-              ),
-              // Utilizamos SizedBox con el espaciado predefinido
-              SizedBox(height: verticalSpacing),
-              SignInButtonsRow(
-                onGooglePressed: () => print("Google"),
-                onFacebookPressed: () => print("Facebook"),
-                onApplePressed: () => print("Apple"),
-              ),
-              SizedBox(height: verticalSpacing),
-              TextButton(
-                onPressed: () {
-                  controller.isRegisteringNotifier.value = !controller.isRegisteringNotifier.value;
-                },
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: controller.isRegisteringNotifier,
-                  builder: (context, isRegistering, _) {
-                    return RichText(
-                      text: TextSpan(
-                        text: isRegistering ? '¿Ya tenés una cuenta? ' : '¿No tenés una cuenta? ',
-                        style: TextStyle(
-                          color: const Color(0xFF333D86),
-                          // Utilizamos fontStyle para textos
-                          fontSize: ResponsiveUtils.fontStyle(context, 'body'),
-                          fontFamily: 'Poppins',
-                        ),
-                        children: [
-                          TextSpan(
-                            text: isRegistering ? 'Iniciá sesión' : 'Registrate',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: bottomSectionPadding),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Row(
+              children: [
+                Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
+                Text(' O continuá con ', style: TextStyle(color: Color(0xFF333D86))),
+                Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
+              ],
+            ),
+            // Utilizamos SizedBox con el espaciado predefinido
+            SizedBox(height: verticalSpacing),
+            SignInButtonsRow(
+              onGooglePressed: () => print("Google"),
+              onFacebookPressed: () => print("Facebook"),
+              onApplePressed: () => print("Apple"),
+            ),
+            SizedBox(height: verticalSpacing - 10),
+            TextButton(
+              onPressed: () {
+                controller.isRegisteringNotifier.value = !controller.isRegisteringNotifier.value;
+              },
+              child: ValueListenableBuilder<bool>(
+                valueListenable: controller.isRegisteringNotifier,
+                builder: (context, isRegistering, _) {
+                  return RichText(
+                    text: TextSpan(
+                      text: isRegistering ? '¿Ya tenés una cuenta? ' : '¿No tenés una cuenta? ',
+                      style: TextStyle(
+                        color: const Color(0xFF333D86),
+                        // Utilizamos fontStyle para textos
+                        fontSize: ResponsiveUtils.fontStyle(context, 'button'),
+                        fontFamily: 'Poppins',
                       ),
-                    );
-                  },
-                ),
+                      children: [
+                        TextSpan(
+                          text: isRegistering ? 'Iniciá sesión' : 'Registrate',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+            // Espaciado adaptativo al final según el tipo de dispositivo
+            SizedBox(height: bottomSpacing),
+          ],
         ),
       ),
     );
