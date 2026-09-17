@@ -12,6 +12,9 @@ import 'package:classlift/models/database_models.dart';
 import 'package:classlift/services/database_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'select_career.dart';
+import 'package:classlift/services/moodle_auth_service.dart';
+import 'package:classlift/services/moodle_tasks_service.dart';
+import 'package:classlift/widgets/home/pending_tasks_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +34,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   _NextClassOccurrence? _nextClassOccurrence;
   List<UpcomingEvaluation> _nextEvaluations = [];
   bool _isWeeklySummary = false;
+  Future<MoodleTasksResult>? _moodleTasks;
+
+  void _refreshMoodleTasks() {
+    setState(() {
+      _moodleTasks = MoodleAuthService.instance.session == null
+          ? null : MoodleTasksService().load();
+    });
+  }
   bool _isLoadingClasses = true;
   double _horizontalDragDistance = 0;
   int _dayTransitionDirection = 1;
@@ -40,6 +51,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     _selectedDay = DateTime.now();
     Intl.defaultLocale = 'es_ES';
+    _moodleTasks = MoodleAuthService.instance.session == null
+        ? null : MoodleTasksService().load();
 
     // Añadir observer para detectar cuando la app regrese del background
     WidgetsBinding.instance.addObserver(this);
@@ -60,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       _loadClassesForSelectedDay();
+      _refreshMoodleTasks();
     }
   }
 
@@ -365,6 +379,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       _buildUpcomingEvaluations(),
                                     ],
                                   ),
+                            PendingTasksSection(
+                              future: _moodleTasks,
+                              onRefresh: _refreshMoodleTasks,
+                            ),
                             const SizedBox(height: 20),
                           ],
                         ),

@@ -50,6 +50,8 @@ dependencies:
   wolt_modal_sheet: ^0.10.0
   go_router: ^13.2.2
   http: ^1.6.0
+  html: ^0.15.7
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

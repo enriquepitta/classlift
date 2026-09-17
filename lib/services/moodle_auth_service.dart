@@ -114,5 +114,25 @@ class MoodleAuthService {
     );
   }
 
+  Future<Map<String, dynamic>> call(String function,
+      [Map<String, String> parameters = const {}]) async {
+    final current = session;
+    if (current == null) {
+      throw const MoodleAuthException(
+          'Iniciá sesión con Moodle para ver tus tareas.');
+    }
+    final result = await _post('/webservice/rest/server.php', {
+      ...parameters,
+      'wstoken': current.token,
+      'wsfunction': function,
+      'moodlewsrestformat': 'json',
+    });
+    if (!identical(current, session)) {
+      throw const MoodleAuthException(
+          'La sesión de Moodle cambió. Actualizá las tareas.');
+    }
+    return result;
+  }
+
   void signOut() => session = null;
 }
