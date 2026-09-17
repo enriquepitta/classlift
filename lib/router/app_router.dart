@@ -4,10 +4,15 @@ import 'package:classlift/screens/home_screen.dart';
 import 'package:classlift/screens/login/login_screen.dart';
 import 'package:classlift/screens/splash_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:classlift/screens/login/moodle_login_screen.dart';
 
 final GoRouter appRouter = GoRouter (
   initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/login/moodle',
+      builder: (context, state) => const MoodleLoginScreen(),
+    ),
     GoRoute(
       path: '/',
       pageBuilder: (context, state) => buildFadeTransition(

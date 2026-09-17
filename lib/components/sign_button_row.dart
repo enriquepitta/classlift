@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 class SignInButtonsRow extends StatelessWidget {
   final VoidCallback onGooglePressed;
-  final VoidCallback onFacebookPressed;
+  final VoidCallback onMoodlePressed;
   final VoidCallback onApplePressed;
   final bool showShadow;
   final double spacing;
@@ -12,7 +12,7 @@ class SignInButtonsRow extends StatelessWidget {
   const SignInButtonsRow({
     Key? key,
     required this.onGooglePressed,
-    required this.onFacebookPressed,
+    required this.onMoodlePressed,
     required this.onApplePressed,
     this.showShadow = false,
     this.spacing = 8.0,
@@ -24,9 +24,12 @@ class SignInButtonsRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Expanded(
-          child: SocialSignInButton.facebook(
-            onPressed: onFacebookPressed,
-            showShadow: showShadow,
+          child: Tooltip(
+            message: 'Iniciar sesión con Moodle',
+            child: SocialSignInButton.moodle(
+              onPressed: onMoodlePressed,
+              showShadow: showShadow,
+            ),
           ),
         ),
         SizedBox(width: spacing),

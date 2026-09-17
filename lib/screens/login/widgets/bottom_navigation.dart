@@ -1,5 +1,6 @@
 import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:classlift/components/sign_button_row.dart';
 import '../controller/login_controller.dart';
 
@@ -62,7 +63,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
             SizedBox(height: verticalSpacing),
             SignInButtonsRow(
               onGooglePressed: () => print("Google"),
-              onFacebookPressed: () => print("Facebook"),
+              onMoodlePressed: () => context.push('/login/moodle'),
               onApplePressed: () => print("Apple"),
             ),
             SizedBox(height: verticalSpacing - 10),

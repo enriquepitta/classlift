@@ -42,8 +42,8 @@ class SocialSignInButton extends StatelessWidget {
     );
   }
 
-  /// Constructor de fábrica para Facebook
-  factory SocialSignInButton.facebook({
+  /// Constructor de fábrica para Moodle
+  factory SocialSignInButton.moodle({
     required VoidCallback onPressed,
     double? width,
     double? height,
@@ -51,7 +51,7 @@ class SocialSignInButton extends StatelessWidget {
   }) {
     return SocialSignInButton(
       onPressed: onPressed,
-      iconAsset: 'assets/icons/facebook_icon.svg',
+      iconAsset: 'assets/icons/moodle_icon.svg',
       width: width ?? 80.0,
       height: height ?? 50.0,
       showShadow: showShadow,
