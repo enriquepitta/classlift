@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -25,12 +26,13 @@ class _BottomNavigationState extends State<BottomNavigation> {
     final double verticalSpacing = ResponsiveUtils.spacing(context, 'md');
 
     // Detectamos si el dispositivo tiene zona segura inferior
-    final bool hasBottomSafeArea = MediaQuery.of(context).viewPadding.bottom > 0;
+    final bool hasBottomSafeArea =
+        MediaQuery.of(context).viewPadding.bottom > 0;
 
     // Ajustamos el espaciado final según si tiene o no zona segura
     final double bottomSpacing = hasBottomSafeArea
-        ? verticalSpacing  // Reducimos el espaciado si ya tiene safe area
-        : 0.0;       // Mantenemos el espaciado normal si no tiene safe area
+        ? verticalSpacing // Reducimos el espaciado si ya tiene safe area
+        : 0.0; // Mantenemos el espaciado normal si no tiene safe area
 
     // También podríamos usar el método propuesto
     // final double bottomSpacing = ResponsiveUtils.getBottomSafeSpacing(
@@ -44,7 +46,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFFFF), Color(0xFF4E7AB5)],
+          colors: [ClassliftColors.White, ClassliftColors.PrimaryColorVariant],
         ),
       ),
       child: Padding(
@@ -54,31 +56,37 @@ class _BottomNavigationState extends State<BottomNavigation> {
           children: [
             const Row(
               children: [
-                Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
-                Text(' O continuá con ', style: TextStyle(color: Color(0xFF333D86))),
-                Expanded(child: Divider(color: Color(0xFF333D86), thickness: 1)),
+                Expanded(
+                    child: Divider(color: ClassliftColors.PrimaryColor, thickness: 1)),
+                Text(' O continuá con ',
+                    style: TextStyle(color: ClassliftColors.PrimaryColor)),
+                Expanded(
+                    child: Divider(color: ClassliftColors.PrimaryColor, thickness: 1)),
               ],
             ),
             // Utilizamos SizedBox con el espaciado predefinido
             SizedBox(height: verticalSpacing),
             SignInButtonsRow(
-              onGooglePressed: () => print("Google"),
+              onGooglePressed: controller.signInWithGoogle,
               onMoodlePressed: () => context.push('/login/moodle'),
-              onApplePressed: () => print("Apple"),
+              onApplePressed: () {},
             ),
             SizedBox(height: verticalSpacing - 10),
             TextButton(
               onPressed: () {
-                controller.isRegisteringNotifier.value = !controller.isRegisteringNotifier.value;
+                controller.isRegisteringNotifier.value =
+                    !controller.isRegisteringNotifier.value;
               },
               child: ValueListenableBuilder<bool>(
                 valueListenable: controller.isRegisteringNotifier,
                 builder: (context, isRegistering, _) {
                   return RichText(
                     text: TextSpan(
-                      text: isRegistering ? '¿Ya tenés una cuenta? ' : '¿No tenés una cuenta? ',
+                      text: isRegistering
+                          ? '¿Ya tenés una cuenta? '
+                          : '¿No tenés una cuenta? ',
                       style: TextStyle(
-                        color: const Color(0xFF333D86),
+                        color: ClassliftColors.PrimaryColor,
                         // Utilizamos fontStyle para textos
                         fontSize: ResponsiveUtils.fontStyle(context, 'button'),
                         fontFamily: 'Poppins',

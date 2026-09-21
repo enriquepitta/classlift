@@ -89,7 +89,7 @@ class _SelectCareerScreenState extends State<SelectCareerScreen>
         ),
       ),
       body: Container(
-        color: Color(0xFFF5F5F5),
+        color: ClassliftColors.BackgroundColor,
         child: Column(
           children: [
             Padding(
@@ -99,7 +99,7 @@ class _SelectCareerScreenState extends State<SelectCareerScreen>
                 'Seleccionaste ${selectedCareerCodes.length} carrera${selectedCareerCodes.length != 1 ? 's' : ''}',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.black,
+                  color: ClassliftColors.Black,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -167,8 +167,8 @@ class _SelectCareerScreenState extends State<SelectCareerScreen>
                         },
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
-                    backgroundColor: Colors.transparent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: ClassliftColors.transparent,
+                    foregroundColor: ClassliftColors.White,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
@@ -182,7 +182,7 @@ class _SelectCareerScreenState extends State<SelectCareerScreen>
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: ClassliftColors.White,
                             strokeWidth: 2,
                           ),
                         ),
@@ -260,8 +260,8 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile>
     return CupertinoListTile(
       onTap: widget.onTap,
       backgroundColor: careers.indexOf(widget.career) % 2 == 0
-          ? Colors.white // Color para índices pares
-          : Color(0xFFF5F5F5), // Color para índices impares
+          ? ClassliftColors.White // Color para índices pares
+          : ClassliftColors.BackgroundColor, // Color para índices impares
       title: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 0.0),
         child: SizedBox(
@@ -274,7 +274,7 @@ class _CareerCheckboxTileState extends State<CareerCheckboxTile>
               overflow: TextOverflow.ellipsis,
               softWrap: true,
               style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                    color: Colors.black,
+                    color: ClassliftColors.Black,
                   ),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'dart:async';
 import 'package:classlift/screens/success_signup_screen.dart';
 import 'package:flutter/material.dart';
@@ -122,7 +123,7 @@ class _VerificationScreenState extends State<VerificationScreen> with SingleTick
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: ClassliftColors.White,
                                 ),
                               ),
                             ),
@@ -133,20 +134,20 @@ class _VerificationScreenState extends State<VerificationScreen> with SingleTick
                               style: TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: ClassliftColors.White,
                               ),
                             ),
                             const SizedBox(height: 20),
 
                             const Text(
                               'Te hemos enviado un correo de verificación a la dirección que proporcionaste. Revisa tu bandeja de entrada y confirmá tu dirección de correo electrónico.',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: ClassliftColors.White),
                             ),
                             const SizedBox(height: 20),
 
                             const Text(
                               'Después de verificar tu correo, regresa a esta pantalla para continuar con el registro.',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: ClassliftColors.White),
                             ),
                             const SizedBox(height: 20),
                           ],
@@ -180,9 +181,9 @@ class _VerificationScreenState extends State<VerificationScreen> with SingleTick
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         backgroundColor: _isVerified
-                            ? const Color(0xFF4E7AB5)
-                            : const Color(0xFF979797),
-                        foregroundColor: Colors.white,
+                            ? ClassliftColors.PrimaryColorVariant
+                            : ClassliftColors.verificationMuted,
+                        foregroundColor: ClassliftColors.White,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10.0),
                         ),
@@ -203,8 +204,8 @@ class _VerificationScreenState extends State<VerificationScreen> with SingleTick
                               : "Reenviar en ",
                           style: TextStyle(
                             color: _isResendEnabled
-                                ? const Color(0xFF333D86)
-                                : const Color(0xFF979797),
+                                ? ClassliftColors.PrimaryColor
+                                : ClassliftColors.verificationMuted,
                             fontSize: 16,
                           ),
                           children: _isResendEnabled
@@ -213,7 +214,7 @@ class _VerificationScreenState extends State<VerificationScreen> with SingleTick
                             TextSpan(
                               text: "$_timeRemaining",
                               style: const TextStyle(
-                                color: Colors.black,
+                                color: ClassliftColors.Black,
                               ),
                             ),
                             const TextSpan(text: " segundos"),

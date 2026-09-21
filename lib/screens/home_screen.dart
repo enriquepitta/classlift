@@ -14,7 +14,11 @@ import 'package:table_calendar/table_calendar.dart';
 import 'select_career.dart';
 import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
+import 'package:classlift/utils/home_subtitle.dart';
 import 'package:classlift/widgets/home/pending_tasks_section.dart';
+import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:classlift/widgets/home/home_profile_header.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,14 +38,35 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   _NextClassOccurrence? _nextClassOccurrence;
   List<UpcomingEvaluation> _nextEvaluations = [];
   bool _isWeeklySummary = false;
-  Future<MoodleTasksResult>? _moodleTasks;
+  bool _signingOut = false;
+
+  Future<void> _signOut() async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+    try {
+      await FirebaseAuth.instance.signOut();
+      MoodleAuthService.instance.signOut();
+      MoodleTasksService.clearCache();
+      if (!mounted) return;
+      context.go('/login');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No se pudo cerrar sesión. Intentá nuevamente.'),
+      ));
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
+    }
+  }
 
   void _refreshMoodleTasks() {
-    setState(() {
-      _moodleTasks = MoodleAuthService.instance.session == null
-          ? null : MoodleTasksService().load();
-    });
+    MoodleTasksService.loadCurrentSession();
   }
+
+  Future<void> _connectMoodle() async {
+    await context.push('/login/moodle');
+  }
+
   bool _isLoadingClasses = true;
   double _horizontalDragDistance = 0;
   int _dayTransitionDirection = 1;
@@ -51,8 +76,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     _selectedDay = DateTime.now();
     Intl.defaultLocale = 'es_ES';
-    _moodleTasks = MoodleAuthService.instance.session == null
-        ? null : MoodleTasksService().load();
+    if (MoodleAuthService.instance.session != null &&
+        MoodleTasksService.lastLoad == null) {
+      MoodleTasksService.loadCurrentSession();
+    }
 
     // Añadir observer para detectar cuando la app regrese del background
     WidgetsBinding.instance.addObserver(this);
@@ -118,6 +145,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       'Domingo',
     ];
     return dayNames[day.weekday - 1];
+  }
+
+  String _homeSubtitle(MoodleTasksResult? moodleTasks) {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final tomorrow = today.add(const Duration(days: 1));
+    final hasSchedule = _allActiveClasses.isNotEmpty;
+    final classesToday = _allActiveClasses
+        .where(
+            (scheduledClass) => scheduledClass.dayOfWeek == _dayNameFor(today))
+        .length;
+    final examsToday = _nextEvaluations
+        .where((evaluation) => DateUtils.isSameDay(evaluation.date, today))
+        .length;
+    final examsTomorrow = _nextEvaluations
+        .where((evaluation) => DateUtils.isSameDay(evaluation.date, tomorrow))
+        .length;
+    final isMoodleConnected = MoodleAuthService.instance.session != null;
+    final tasksDueToday = isMoodleConnected
+        ? (moodleTasks?.tasks
+                .where((task) =>
+                    !task.submitted &&
+                    task.dueDate != null &&
+                    DateUtils.isSameDay(task.dueDate, today))
+                .length ??
+            0)
+        : 0;
+
+    return getHomeSubtitle(
+      hasSchedule: hasSchedule,
+      classesToday: classesToday,
+      examsToday: examsToday,
+      examsTomorrow: examsTomorrow,
+      tasksDueToday: tasksDueToday,
+      isMoodleConnected: isMoodleConnected,
+    );
   }
 
   _NextClassOccurrence? _findNextClassAfter(
@@ -243,8 +305,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _horizontalDragDistance = 0;
   }
 
-  Future<void> _handleExcel() async {
-    Navigator.pop(context);
+  Future<void> _startExcelImport() async {
     try {
       final result = await ExcelPickerService.pickSheets();
       if (!mounted) return;
@@ -265,15 +326,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error, color: Colors.white, size: 20),
+              const Icon(Icons.error, color: ClassliftColors.White, size: 20),
               const SizedBox(width: 12),
               Expanded(child: Text('Error al seleccionar archivo: $e')),
             ],
           ),
-          backgroundColor: Colors.red,
+          backgroundColor: ClassliftColors.red,
         ),
       );
     }
+  }
+
+  Future<void> _handleExcel() async {
+    Navigator.pop(context);
+    await _startExcelImport();
   }
 
   void _handleManual() {
@@ -281,13 +347,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Función manual próximamente...'),
-        backgroundColor: Colors.orange,
+        backgroundColor: ClassliftColors.orange,
       ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ValueListenableBuilder<Future<MoodleTasksResult>?>(
+        valueListenable: MoodleTasksService.loadListenable,
+        builder: (context, tasks, _) => _buildHome(context, tasks),
+      );
+
+  Widget _buildHome(BuildContext context, Future<MoodleTasksResult>? tasks) {
+    final showNewUserState = !_isLoadingClasses && _allActiveClasses.isEmpty;
+    final hasMoodleSession = MoodleAuthService.instance.session != null;
+    final cachedTasks = hasMoodleSession ? MoodleTasksService.lastResult : null;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -299,17 +375,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         child: Column(
           children: [
-            // Calendario (parte superior)
-            CalendarWidget(
-              focusedDay: _focusedDay,
-              selectedDay: _selectedDay,
-              calendarFormat: _calendarFormat,
-              classCountByDay: _classesCountByDay,
-              onDaySelected: _toggleWeeklySummary,
-              onFormatChanged: (fmt) => setState(() => _calendarFormat = fmt),
-              onPageChanged: (foc) => setState(() => _focusedDay = foc),
+            DecoratedBox(
+              decoration:
+                  BoxDecoration(gradient: ClassliftColors.primaryGradient),
+              child: Column(children: [
+                FutureBuilder<MoodleTasksResult>(
+                  future: hasMoodleSession ? tasks : null,
+                  initialData: cachedTasks,
+                  builder: (context, snapshot) => HomeProfileHeader(
+                    displayName:
+                        FirebaseAuth.instance.currentUser?.displayName ??
+                            MoodleAuthService.instance.session?.fullName,
+                    email: FirebaseAuth.instance.currentUser?.email,
+                    subtitle: _homeSubtitle(snapshot.data),
+                    signingOut: _signingOut,
+                    onSignOut: _signOut,
+                  ),
+                ),
+                // Calendario (parte superior)
+                ClipRect(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    heightFactor:
+                        _calendarFormat == CalendarFormat.week ? 0.84 : 0.94,
+                    child: MediaQuery.removePadding(
+                      context: context,
+                      removeTop: true,
+                      child: CalendarWidget(
+                        showBackground: false,
+                        focusedDay: _focusedDay,
+                        selectedDay: _selectedDay,
+                        calendarFormat: _calendarFormat,
+                        classCountByDay: _classesCountByDay,
+                        onDaySelected: _toggleWeeklySummary,
+                        onFormatChanged: (fmt) =>
+                            setState(() => _calendarFormat = fmt),
+                        onPageChanged: (foc) =>
+                            setState(() => _focusedDay = foc),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
             ),
-
             // Footer del calendario
             CalendarFooter(
               calendarFormat: _calendarFormat,
@@ -371,18 +479,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _isWeeklySummary
-                                ? _buildWeeklySummary()
-                                : Column(
-                                    children: [
-                                      _buildDailySchedule(),
-                                      _buildUpcomingEvaluations(),
-                                    ],
-                                  ),
-                            PendingTasksSection(
-                              future: _moodleTasks,
-                              onRefresh: _refreshMoodleTasks,
-                            ),
+                            if (showNewUserState) ...[
+                              _buildNewUserSetupSection(
+                                showEducaCard: !hasMoodleSession,
+                              ),
+                              if (hasMoodleSession)
+                                PendingTasksSection(
+                                  future: tasks,
+                                  onRefresh: _refreshMoodleTasks,
+                                ),
+                            ] else ...[
+                              _isWeeklySummary
+                                  ? _buildWeeklySummary()
+                                  : Column(
+                                      children: [
+                                        _buildDailySchedule(),
+                                        _buildUpcomingEvaluations(),
+                                      ],
+                                    ),
+                              if (hasMoodleSession)
+                                PendingTasksSection(
+                                  future: tasks,
+                                  onRefresh: _refreshMoodleTasks,
+                                )
+                              else
+                                _buildMoodleConnectSection(),
+                            ],
                             const SizedBox(height: 20),
                           ],
                         ),
@@ -397,25 +519,86 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
         selectedIndex: _selectedIndex,
-        onItemTapped: (i) => setState(() => _selectedIndex = i),
+        onItemTapped: (i) {
+          if (i == 2) {
+            context.go('/tasks');
+            return;
+          }
+          setState(() => _selectedIndex = i);
+        },
         onFilePicked: (_) {},
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showModalBottomSheet(
           context: context,
           isScrollControlled: true,
-          backgroundColor: Colors.transparent,
+          backgroundColor: ClassliftColors.transparent,
           barrierColor: ClassliftColors.PrimaryColor.withOpacity(0.15),
           builder: (_) => OptionsBottomSheet(
             onExcel: _handleExcel,
             onManual: _handleManual,
           ),
         ),
-        backgroundColor: const Color(0xFF5668D9),
+        backgroundColor: ClassliftColors.homeAction,
         shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: ClassliftColors.White),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+    );
+  }
+
+  Widget _buildNewUserSetupSection({required bool showEducaCard}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Column(
+        children: [
+          _SetupCard(
+            backgroundColor: ClassliftColors.setupScheduleBackground,
+            accentColor: ClassliftColors.homeAction,
+            titleColor: ClassliftColors.PrimaryColor,
+            eyebrow: 'Primer paso',
+            title: 'Configurá tu horario',
+            description:
+                'Importá el horario de tu facultad y seleccioná las materias que estás cursando.',
+            actionLabel: 'Importar horario',
+            actionIcon: Icons.description_outlined,
+            illustrationIcon: Icons.calendar_month_rounded,
+            badgeIcon: Icons.add_rounded,
+            onAction: _startExcelImport,
+            footer: const _SetupStepsFooter(),
+          ),
+          if (showEducaCard) ...[
+            const SizedBox(height: 12),
+            _buildMoodleConnectCard(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoodleConnectSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: _buildMoodleConnectCard(),
+    );
+  }
+
+  Widget _buildMoodleConnectCard() {
+    return _SetupCard(
+      backgroundColor: ClassliftColors.educaSoftBackground,
+      accentColor: ClassliftColors.educaRed,
+      titleColor: ClassliftColors.educaDarkRed,
+      eyebrowColor: ClassliftColors.educaBadge,
+      eyebrow: 'EDUCA Moodle',
+      title: 'Traé tus tareas al inicio',
+      description:
+          'Conectá tu campus y ClassLift mostrará tus entregas pendientes en cards apenas vuelvas al Home.',
+      actionLabel: 'Conectar Moodle',
+      actionIcon: Icons.school_outlined,
+      illustrationIcon: Icons.assignment_turned_in_rounded,
+      badgeIcon: Icons.sync_rounded,
+      onAction: _connectMoodle,
+      footer: const _EducaBenefitsFooter(),
     );
   }
 
@@ -490,8 +673,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final cardColor = _cardColorFor(subjectName);
     final accentColor = _accentColorFor(cardColor);
     final countdown = _evaluationCountdown(evaluation.date);
-    final countdownTextColor =
-        accentColor.computeLuminance() <= 0.183 ? Colors.white : Colors.black;
+    final countdownTextColor = accentColor.computeLuminance() <= 0.183
+        ? ClassliftColors.White
+        : ClassliftColors.Black;
     final dateLabel =
         DateFormat("EEEE, d 'de' MMMM", 'es_ES').format(evaluation.date);
 
@@ -556,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         child: Text(
                           evaluation.evaluationType,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: ClassliftColors.White,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                           ),
@@ -623,7 +807,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: ClassliftColors.White,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -696,7 +880,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             vertical: compact ? 13 : 15,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F2FF),
+            color: ClassliftColors.scheduleSummaryBackground,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
@@ -767,7 +951,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: calendarWidth,
               height: calendarHeight,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: ClassliftColors.White,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
@@ -782,7 +966,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   Container(
                     height: headerHeight,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF9EACF3),
+                      color: ClassliftColors.illustrationHeader,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(10),
                       ),
@@ -800,7 +984,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             width: width * 0.09,
                             height: width * 0.08,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFDCE3FF),
+                              color: ClassliftColors.illustrationCell,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -819,7 +1003,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: width * 0.07,
               height: width * 0.24,
               decoration: BoxDecoration(
-                color: const Color(0xFF687DE4),
+                color: ClassliftColors.illustrationBinding,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -831,7 +1015,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: width * 0.07,
               height: width * 0.24,
               decoration: BoxDecoration(
-                color: const Color(0xFF687DE4),
+                color: ClassliftColors.illustrationBinding,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -843,12 +1027,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: width * 0.42,
               height: width * 0.42,
               decoration: const BoxDecoration(
-                color: Color(0xFFB9C6FB),
+                color: ClassliftColors.illustrationBadge,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.check_rounded,
-                color: const Color(0xFF5269D9),
+                color: ClassliftColors.illustrationCheck,
                 size: width * 0.26,
               ),
             ),
@@ -1078,7 +1262,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
-            color: Colors.white,
+            color: ClassliftColors.White,
             fontSize: 10,
             fontWeight: FontWeight.w700,
           ),
@@ -1094,7 +1278,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children: [
           Icon(
             Icons.wb_sunny_outlined,
-            color: Color(0xFF7584D8),
+            color: ClassliftColors.emptyScheduleIcon,
             size: 25,
           ),
           SizedBox(width: 11),
@@ -1113,7 +1297,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Text(
                 'Disfrutá el día libre.',
                 style: TextStyle(
-                  color: Color(0xFF6B78B8),
+                  color: ClassliftColors.emptyScheduleText,
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                 ),
@@ -1205,7 +1389,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildEmptyScheduleIllustration() {
-    const illustrationColor = Color(0xFF6176E5);
+    const illustrationColor = ClassliftColors.illustrationPrimary;
     return SizedBox(
       width: 168,
       height: 136,
@@ -1226,7 +1410,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               width: 102,
               height: 86,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: ClassliftColors.White,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -1271,7 +1455,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             right: 23,
             child: CircleAvatar(
               radius: 20,
-              backgroundColor: Color(0xFFB9C6FB),
+              backgroundColor: ClassliftColors.illustrationBadge,
               child:
                   Icon(Icons.check_rounded, color: illustrationColor, size: 27),
             ),
@@ -1365,7 +1549,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF0FF),
+        color: ClassliftColors.restMessageBackground,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Center(
@@ -1374,20 +1558,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             const Icon(
               Icons.wb_sunny_rounded,
-              color: Color(0xFF6176E5),
+              color: ClassliftColors.illustrationPrimary,
               size: 29,
             ),
             Container(
               width: 1,
               height: 34,
               margin: const EdgeInsets.symmetric(horizontal: 15),
-              color: const Color(0xFF6176E5).withOpacity(0.28),
+              color: ClassliftColors.illustrationPrimary.withOpacity(0.28),
             ),
             const Text(
               '“Un descanso también\nes parte del progreso”',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Color(0xFF5269D9),
+                color: ClassliftColors.illustrationCheck,
                 fontSize: 15,
                 height: 1.25,
                 fontWeight: FontWeight.w300,
@@ -1548,7 +1732,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 const Text(
                   'Coincidencia de horario',
                   style: TextStyle(
-                    color: Color(0xFFAF3030),
+                    color: ClassliftColors.scheduleConflictTitle,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1845,7 +2029,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Color(0xFFB33333),
+                              color: ClassliftColors.scheduleConflictText,
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1853,7 +2037,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Text(
                             '${_formatFreeTime(overlap.duration)} en conflicto',
                             style: const TextStyle(
-                              color: Color(0xFFB33333),
+                              color: ClassliftColors.scheduleConflictText,
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -2050,76 +2234,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Color _cardColorFor(String subjectName) {
-    const colors = [
-      Color(0xFFFFD9DD),
-      Color(0xFFDDF8EC),
-      Color(0xFFDCE8FA),
-      Color(0xFFFFEBD3),
-      Color(0xFFECE2FA),
-      Color(0xFFFFF3CC),
-      Color(0xFFD8F5F3),
-      Color(0xFFE7E6FF),
-      Color(0xFFFFE2D4),
-      Color(0xFFFBE0F0),
-      Color(0xFFDAEFFC),
-      Color(0xFFDBF2DF),
-      Color(0xFFFFE0E8),
-      Color(0xFFE3F3D4),
-      Color(0xFFDDEBFF),
-      Color(0xFFFFE7C6),
-      Color(0xFFE9DCF8),
-      Color(0xFFF8F0C9),
-      Color(0xFFD5F0EC),
-      Color(0xFFE5E1F5),
-      Color(0xFFF9DED1),
-      Color(0xFFF3DDEA),
-      Color(0xFFD8EEF4),
-      Color(0xFFDDEFD8),
-    ];
     final index = _colorIndexBySubject[_subjectKey(subjectName)] ??
         _stableSubjectIndex(subjectName);
-    if (index < colors.length) return colors[index];
-
-    // Cuando la persona tenga más materias que colores base, se crean tonos
-    // pastel adicionales. El ángulo áureo evita que dos índices reutilicen
-    // exactamente el mismo color.
-    final hue = (index * 137.50776405003785) % 360;
-    return HSLColor.fromAHSL(1, hue, 0.58, 0.9).toColor();
+    return ClassliftColors.subjectBackgroundFor(index);
   }
 
-  Color _accentColorFor(Color cardColor) {
-    final accents = {
-      Color(0xFFFFD9DD): Color(0xFFAD1F35),
-      Color(0xFFDDF8EC): Color(0xFF3C7960),
-      Color(0xFFDCE8FA): Color(0xFF2F67B1),
-      Color(0xFFFFEBD3): Color(0xFF9C5A16),
-      Color(0xFFECE2FA): Color(0xFF6C4DA3),
-      Color(0xFFFFF3CC): Color(0xFF9A7610),
-      Color(0xFFD8F5F3): Color(0xFF1B7775),
-      Color(0xFFE7E6FF): Color(0xFF5350A8),
-      Color(0xFFFFE2D4): Color(0xFFAA5130),
-      Color(0xFFFBE0F0): Color(0xFFA83D70),
-      Color(0xFFDAEFFC): Color(0xFF267AA4),
-      Color(0xFFDBF2DF): Color(0xFF39794A),
-      Color(0xFFFFE0E8): Color(0xFFB33B58),
-      Color(0xFFE3F3D4): Color(0xFF517F31),
-      Color(0xFFDDEBFF): Color(0xFF3E649E),
-      Color(0xFFFFE7C6): Color(0xFFA86819),
-      Color(0xFFE9DCF8): Color(0xFF7654A1),
-      Color(0xFFF8F0C9): Color(0xFF927818),
-      Color(0xFFD5F0EC): Color(0xFF257C73),
-      Color(0xFFE5E1F5): Color(0xFF6256A1),
-      Color(0xFFF9DED1): Color(0xFFB05B40),
-      Color(0xFFF3DDEA): Color(0xFFA44B7B),
-      Color(0xFFD8EEF4): Color(0xFF2D7C93),
-      Color(0xFFDDEFD8): Color(0xFF467C43),
-    };
-    final accent = accents[cardColor];
-    if (accent != null) return accent;
-
-    final hsl = HSLColor.fromColor(cardColor);
-    return hsl.withSaturation(0.58).withLightness(0.38).toColor();
-  }
+  Color _accentColorFor(Color cardColor) =>
+      ClassliftColors.subjectAccentFor(cardColor);
 
   Map<String, int> _buildColorIndexes(List<SelectedSubject> subjects) {
     final names = subjects
@@ -2162,7 +2283,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             height: 4,
             margin: EdgeInsets.only(left: index == 0 ? 0 : 3),
             decoration: const BoxDecoration(
-                color: Colors.white, shape: BoxShape.circle),
+                color: ClassliftColors.White, shape: BoxShape.circle),
           ),
         ),
       ),
@@ -2181,7 +2302,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: Text(
         label.isEmpty ? 'Sin aula' : label,
         style: const TextStyle(
-            color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+            color: ClassliftColors.White,
+            fontSize: 11,
+            fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -2250,6 +2373,421 @@ class _ConflictStripePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ConflictStripePainter oldDelegate) => false;
+}
+
+class _SetupCard extends StatelessWidget {
+  final Color backgroundColor;
+  final Color accentColor;
+  final Color titleColor;
+  final Color? eyebrowColor;
+  final String eyebrow;
+  final String title;
+  final String description;
+  final String actionLabel;
+  final IconData actionIcon;
+  final IconData illustrationIcon;
+  final IconData badgeIcon;
+  final VoidCallback onAction;
+  final Widget footer;
+
+  const _SetupCard({
+    required this.backgroundColor,
+    required this.accentColor,
+    required this.titleColor,
+    this.eyebrowColor,
+    required this.eyebrow,
+    required this.title,
+    required this.description,
+    required this.actionLabel,
+    required this.actionIcon,
+    required this.illustrationIcon,
+    required this.badgeIcon,
+    required this.onAction,
+    required this.footer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final compact = screenWidth < 390;
+    final textContent = Column(
+      crossAxisAlignment:
+          compact ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        _SetupEyebrow(
+          label: eyebrow,
+          color: accentColor,
+          backgroundColor: eyebrowColor,
+        ),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          textAlign: compact ? TextAlign.center : TextAlign.start,
+          style: TextStyle(
+            color: titleColor,
+            fontSize: compact ? 21 : 23,
+            height: 1.08,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          description,
+          textAlign: compact ? TextAlign.center : TextAlign.start,
+          style: TextStyle(
+            color: ClassliftColors.PrimaryColor.withValues(alpha: 0.68),
+            fontSize: compact ? 13 : 14,
+            height: 1.3,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _SetupActionButton(
+          label: actionLabel,
+          icon: actionIcon,
+          color: accentColor,
+          onPressed: onAction,
+        ),
+      ],
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(compact ? 16 : 18),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          if (compact)
+            Column(
+              children: [
+                _SetupIllustration(
+                  accentColor: accentColor,
+                  icon: illustrationIcon,
+                  badgeIcon: badgeIcon,
+                ),
+                const SizedBox(height: 8),
+                textContent,
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _SetupIllustration(
+                  accentColor: accentColor,
+                  icon: illustrationIcon,
+                  badgeIcon: badgeIcon,
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: textContent),
+              ],
+            ),
+          const SizedBox(height: 14),
+          Divider(color: ClassliftColors.PrimaryColor.withValues(alpha: 0.08)),
+          const SizedBox(height: 10),
+          footer,
+        ],
+      ),
+    );
+  }
+}
+
+class _SetupIllustration extends StatelessWidget {
+  final Color accentColor;
+  final IconData icon;
+  final IconData badgeIcon;
+
+  const _SetupIllustration({
+    required this.accentColor,
+    required this.icon,
+    required this.badgeIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 88,
+      height: 96,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 82,
+            height: 82,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(32),
+            ),
+          ),
+          Transform.rotate(
+            angle: -0.08,
+            child: Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: ClassliftColors.White.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.12),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: accentColor, size: 34),
+            ),
+          ),
+          Positioned(
+            right: 4,
+            bottom: 15,
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: accentColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Icon(badgeIcon, color: ClassliftColors.White, size: 25),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SetupEyebrow extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color? backgroundColor;
+
+  const _SetupEyebrow({
+    required this.label,
+    required this.color,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _SetupActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _SetupActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 22),
+        label: Text(label),
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: ClassliftColors.White,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            fontFamily: 'Poppins',
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SetupStepsFooter extends StatelessWidget {
+  const _SetupStepsFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '¿Cómo funciona?',
+            style: TextStyle(
+              color: ClassliftColors.PrimaryColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+                child: _StepItem(number: '1', label: 'Subí el\narchivo Excel')),
+            Icon(Icons.chevron_right_rounded,
+                color: ClassliftColors.PrimaryColor),
+            Expanded(
+                child: _StepItem(number: '2', label: 'Elegí tus\nmaterias')),
+            Icon(Icons.chevron_right_rounded,
+                color: ClassliftColors.PrimaryColor),
+            Expanded(
+                child: _StepItem(number: '3', label: 'Listo\ny a estudiar')),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StepItem extends StatelessWidget {
+  final String number;
+  final String label;
+
+  const _StepItem({required this.number, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 36,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: ClassliftColors.setupStepBackground,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            number,
+            style: const TextStyle(
+              color: ClassliftColors.PrimaryColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: ClassliftColors.PrimaryColor.withValues(alpha: 0.72),
+            fontSize: 11,
+            height: 1.22,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EducaBenefitsFooter extends StatelessWidget {
+  const _EducaBenefitsFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      _BenefitItemData(Icons.check_box_outlined, 'Tareas\ny entregas'),
+      _BenefitItemData(Icons.chat_bubble_outline_rounded, 'Foros'),
+      _BenefitItemData(Icons.article_outlined, 'Cuestionarios\ny actividades'),
+      _BenefitItemData(
+          Icons.notifications_none_rounded, 'Anuncios\nimportantes'),
+    ];
+
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          Expanded(child: _BenefitItem(data: items[i])),
+          if (i != items.length - 1)
+            Container(
+              height: 32,
+              width: 1,
+              color: ClassliftColors.PrimaryColor.withValues(alpha: 0.08),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _BenefitItem extends StatelessWidget {
+  final _BenefitItemData data;
+
+  const _BenefitItem({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(data.icon, color: ClassliftColors.PrimaryColor, size: 26),
+        const SizedBox(height: 6),
+        Text(
+          data.label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: ClassliftColors.PrimaryColor.withValues(alpha: 0.72),
+            fontSize: 10.5,
+            height: 1.18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BenefitItemData {
+  final IconData icon;
+  final String label;
+
+  const _BenefitItemData(this.icon, this.label);
 }
 
 class _ScheduleOverlap {

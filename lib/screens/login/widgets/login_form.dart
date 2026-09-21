@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/router/app_routes.dart';
 import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
@@ -69,7 +70,7 @@ class LoginForm extends StatelessWidget {
               child: Text(
                 '¿Olvidaste tu contraseña?',
                 style: TextStyle(
-                  color: const Color(0xFF333D86),
+                  color: ClassliftColors.PrimaryColor,
                   fontSize: ResponsiveUtils.fontStyle(context, 'button'),
                 ),
               ),

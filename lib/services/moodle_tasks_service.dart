@@ -1,5 +1,6 @@
 import 'package:classlift/models/moodle_task.dart';
 import 'package:classlift/services/moodle_auth_service.dart';
+import 'package:flutter/foundation.dart';
 
 class MoodleTasksResult {
   final List<MoodleTask> tasks;
@@ -28,6 +29,12 @@ class MoodleTasksResult {
 }
 
 class MoodleTasksService {
+  static MoodleTasksResult? lastResult;
+  static final _loadNotifier = ValueNotifier<Future<MoodleTasksResult>?>(null);
+  static ValueListenable<Future<MoodleTasksResult>?> get loadListenable =>
+      _loadNotifier;
+  static Future<MoodleTasksResult>? get lastLoad => _loadNotifier.value;
+
   final MoodleAuthService auth;
   MoodleTasksService({MoodleAuthService? auth})
       : auth = auth ?? MoodleAuthService.instance;
@@ -89,6 +96,23 @@ class MoodleTasksService {
       if (b.dueDate == null) return -1;
       return a.dueDate!.compareTo(b.dueDate!);
     });
-    return MoodleTasksResult(tasks, incomplete: incomplete);
+    final result = MoodleTasksResult(tasks, incomplete: incomplete);
+    if (identical(session, auth.session)) lastResult = result;
+    return result;
+  }
+
+  static Future<MoodleTasksResult>? loadCurrentSession() {
+    if (MoodleAuthService.instance.session == null) {
+      lastResult = null;
+      _loadNotifier.value = null;
+      return null;
+    }
+    _loadNotifier.value = MoodleTasksService().load();
+    return lastLoad;
+  }
+
+  static void clearCache() {
+    lastResult = null;
+    _loadNotifier.value = null;
   }
 }

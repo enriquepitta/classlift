@@ -166,7 +166,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
             content: Row(
               children: [
                 const Icon(Icons.check_circle,
-                    color: Colors.white, size: 20),
+                    color: ClassliftColors.White, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -189,7 +189,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                 ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: ClassliftColors.green,
             duration: const Duration(seconds: 3),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -210,17 +210,17 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.error, color: Colors.white, size: 20),
+                const Icon(Icons.error, color: ClassliftColors.White, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text('Error al guardar: ${e.toString()}'),
                 ),
               ],
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: ClassliftColors.red,
             action: SnackBarAction(
               label: 'Reintentar',
-              textColor: Colors.white,
+              textColor: ClassliftColors.White,
               onPressed: () {
                 if (mounted) _handleSaveAndNavigate(summaryRoute);
               },
@@ -238,7 +238,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: ClassliftColors.transparent,
       builder: (context) => SubjectSummaryBottomSheet(
         selectedSubjectsByCareer: selectedSubjectsByCareer,
         careers: widget.careers,
@@ -275,7 +275,8 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
         Material(
           color: careerBgColor,
           child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            data: Theme.of(context)
+                .copyWith(dividerColor: ClassliftColors.transparent),
             child: ExpansionTile(
               title: Text(
                 careerName,
@@ -303,7 +304,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                   color: semesterBgColor,
                   child: Theme(
                     data: Theme.of(context)
-                        .copyWith(dividerColor: Colors.transparent),
+                        .copyWith(dividerColor: ClassliftColors.transparent),
                     child: ExpansionTile(
                       title: Text("Semestre $semester"),
                       initiallyExpanded:
@@ -376,7 +377,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
         ),
       ),
       body: Container(
-        color: const Color(0xFFF5F5F5),
+        color: ClassliftColors.BackgroundColor,
         child: Column(
           children: [
             Padding(
@@ -388,7 +389,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                   'Seleccionaste ${getTotalSelectedSubjects()} materia${getTotalSelectedSubjects() != 1 ? 's' : ''}',
                   style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.black,
+                    color: ClassliftColors.Black,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -410,8 +411,8 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                   minimumSize: const Size(double.infinity, 50),
                   backgroundColor: isButtonEnabled
                       ? ClassliftColors.PrimaryColor
-                      : const Color(0xFFA3C1E2),
-                  foregroundColor: Colors.white,
+                      : ClassliftColors.SecondaryColor,
+                  foregroundColor: ClassliftColors.White,
                   textStyle: const TextStyle(fontSize: 16.0),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -484,7 +485,7 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: ClassliftColors.White,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20),
           topRight: Radius.circular(20),
@@ -504,7 +505,7 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: ClassliftColors.grey300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -527,7 +528,7 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                       'Total: ${getTotalSelectedSubjects()} materia${getTotalSelectedSubjects() != 1 ? 's' : ''} seleccionada${getTotalSelectedSubjects() != 1 ? 's' : ''}',
                       style: const TextStyle(
                         fontSize: 16,
-                        color: Colors.grey,
+                        color: ClassliftColors.grey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -562,12 +563,13 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8F9FA),
+                        color: ClassliftColors.listBackground,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE9ECEF)),
+                        border:
+                            Border.all(color: ClassliftColors.scheduleBorder),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: ClassliftColors.Black.withOpacity(0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -597,7 +599,7 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                               children: [
                                 const Icon(
                                   Icons.school,
-                                  color: Colors.white,
+                                  color: ClassliftColors.White,
                                   size: 22,
                                 ),
                                 const SizedBox(width: 12),
@@ -607,7 +609,7 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                      color: ClassliftColors.White,
                                     ),
                                   ),
                                 ),
@@ -615,13 +617,14 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color:
+                                        ClassliftColors.White.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
                                     '$totalSubjectsInCareer materia${totalSubjectsInCareer != 1 ? 's' : ''}',
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: ClassliftColors.White,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 12,
                                     ),
@@ -646,10 +649,10 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                   margin: EdgeInsets.only(
                                       bottom: isLastSemester ? 0 : 16),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: ClassliftColors.White,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                        color: const Color(0xFFE9ECEF)),
+                                        color: ClassliftColors.scheduleBorder),
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
@@ -660,14 +663,15 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 16, vertical: 12),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFF8F9FA),
+                                          color: ClassliftColors.listBackground,
                                           borderRadius: const BorderRadius.only(
                                             topLeft: Radius.circular(12),
                                             topRight: Radius.circular(12),
                                           ),
                                           border: Border(
                                             bottom: BorderSide(
-                                                color: const Color(0xFFE9ECEF)),
+                                                color: ClassliftColors
+                                                    .scheduleBorder),
                                           ),
                                         ),
                                         child: Row(
@@ -695,7 +699,8 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                                 style: const TextStyle(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.w600,
-                                                  color: Colors.black87,
+                                                  color:
+                                                      ClassliftColors.black87,
                                                 ),
                                               ),
                                             ),
@@ -773,13 +778,14 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                                       isLastSubject ? 0 : 12),
                                               padding: const EdgeInsets.all(16),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFFAFAFA),
+                                                color: ClassliftColors
+                                                    .scheduleSurface,
                                                 borderRadius:
                                                     BorderRadius.circular(12),
                                                 border: Border.all(
-                                                    color:
-                                                        const Color(0xFFE9ECEF)
-                                                            .withOpacity(0.5)),
+                                                    color: ClassliftColors
+                                                        .scheduleBorder
+                                                        .withOpacity(0.5)),
                                               ),
                                               // Dentro del Container donde muestras los detalles de la materia
                                               child: Column(
@@ -795,13 +801,15 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                                                 .all(4),
                                                         decoration:
                                                             const BoxDecoration(
-                                                          color: Colors.green,
+                                                          color: ClassliftColors
+                                                              .green,
                                                           shape:
                                                               BoxShape.circle,
                                                         ),
                                                         child: const Icon(
                                                           Icons.check,
-                                                          color: Colors.white,
+                                                          color: ClassliftColors
+                                                              .White,
                                                           size: 12,
                                                         ),
                                                       ),
@@ -813,7 +821,8 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                                                               const TextStyle(
                                                             fontSize: 14,
                                                             color:
-                                                                Colors.black87,
+                                                                ClassliftColors
+                                                                    .black87,
                                                             fontWeight:
                                                                 FontWeight.w600,
                                                           ),
@@ -900,9 +909,9 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20.0),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: ClassliftColors.White,
                   border: Border(
-                    top: BorderSide(color: Colors.grey[200]!),
+                    top: BorderSide(color: ClassliftColors.grey200),
                   ),
                 ),
                 child: SafeArea(
@@ -911,7 +920,7 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
                       backgroundColor: ClassliftColors.PrimaryColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: ClassliftColors.White,
                       textStyle: const TextStyle(
                           fontSize: 16.0, fontWeight: FontWeight.w600),
                       elevation: 0,
@@ -1011,7 +1020,9 @@ class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
-        color: widget.index % 2 == 0 ? Colors.white : const Color(0xFFF5F5F5),
+        color: widget.index % 2 == 0
+            ? ClassliftColors.White
+            : ClassliftColors.BackgroundColor,
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1025,7 +1036,7 @@ class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      color: Colors.black,
+                      color: ClassliftColors.Black,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1056,7 +1067,7 @@ class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
                                 shift,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: ClassliftColors.grey600,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1089,7 +1100,7 @@ class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
                               Icon(
                                 Icons.person_outline,
                                 size: 12,
-                                color: Colors.grey[500],
+                                color: ClassliftColors.grey500,
                               ),
                               const SizedBox(width: 3),
                               Flexible(
@@ -1097,7 +1108,7 @@ class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
                                   professor,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey[600],
+                                    color: ClassliftColors.grey600,
                                     fontWeight: FontWeight.w400,
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -1132,16 +1143,16 @@ class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
 
 // Agregar estas funciones en la clase SubjectSummaryBottomSheet
 Color _getShiftColor(String? shift) {
-  if (shift == null) return Colors.grey;
+  if (shift == null) return ClassliftColors.grey;
   switch (shift.toLowerCase()) {
     case 'mañana':
-      return const Color(0xFF4CAF50); // Verde
+      return ClassliftColors.green; // Verde
     case 'tarde':
-      return const Color(0xFFFF9800); // Naranja
+      return ClassliftColors.orange; // Naranja
     case 'noche':
-      return const Color(0xFF3F51B5); // Azul oscuro
+      return ClassliftColors.indigo; // Azul oscuro
     default:
-      return const Color(0xFF757575); // Gris
+      return ClassliftColors.grey600; // Gris
   }
 }
 
@@ -1160,20 +1171,20 @@ IconData _getShiftIcon(String? shift) {
 }
 
 Color _getSectionColor(String? section) {
-  if (section == null) return Colors.grey;
+  if (section == null) return ClassliftColors.grey;
   switch (section.toUpperCase()) {
     case 'NB':
-      return const Color(0xFF9C27B0); // Púrpura
+      return ClassliftColors.purple; // Púrpura
     case 'MI':
-      return const Color(0xFF2196F3); // Azul
+      return ClassliftColors.blue; // Azul
     case 'A':
-      return const Color(0xFFE91E63); // Rosa
+      return ClassliftColors.pink; // Rosa
     case 'B':
-      return const Color(0xFF00BCD4); // Cyan
+      return ClassliftColors.cyan; // Cyan
     case 'C':
-      return const Color(0xFFFF5722); // Naranja rojizo
+      return ClassliftColors.deepOrange; // Naranja rojizo
     default:
-      return const Color(0xFF607D8B); // Azul gris
+      return ClassliftColors.blueGrey; // Azul gris
   }
 }
 
@@ -1209,10 +1220,10 @@ Widget _buildScheduleWidget(String? encodedSchedule) {
     margin: const EdgeInsets.only(top: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.blue.withOpacity(0.05),
+      color: ClassliftColors.blue.withOpacity(0.05),
       borderRadius: BorderRadius.circular(8),
       border: Border.all(
-        color: Colors.blue.withOpacity(0.2),
+        color: ClassliftColors.blue.withOpacity(0.2),
         width: 1,
       ),
     ),
@@ -1224,14 +1235,14 @@ Widget _buildScheduleWidget(String? encodedSchedule) {
             Icon(
               Icons.schedule,
               size: 14,
-              color: Colors.blue[700],
+              color: ClassliftColors.blue700,
             ),
             const SizedBox(width: 6),
             Text(
               'Horario',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.blue[700],
+                color: ClassliftColors.blue700,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1253,7 +1264,7 @@ Widget _buildScheduleWidget(String? encodedSchedule) {
                     entry.key,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey[700],
+                      color: ClassliftColors.grey700,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1265,14 +1276,14 @@ Widget _buildScheduleWidget(String? encodedSchedule) {
                         Icon(
                           Icons.access_time,
                           size: 12,
-                          color: Colors.grey[600],
+                          color: ClassliftColors.grey600,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           time,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[600],
+                            color: ClassliftColors.grey600,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1282,14 +1293,14 @@ Widget _buildScheduleWidget(String? encodedSchedule) {
                         Icon(
                           Icons.room,
                           size: 12,
-                          color: Colors.grey[600],
+                          color: ClassliftColors.grey600,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           room,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[600],
+                            color: ClassliftColors.grey600,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

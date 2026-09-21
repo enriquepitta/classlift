@@ -44,7 +44,7 @@ class _BottomSectionState extends State<BottomSection> {
                 ),
                 isLoading: controller.isLoading,
                 text: isRegistering ? 'Regístrate' : 'Iniciá sesión',
-                backgroundColor: const Color(0xFF4E7AB5),
+                backgroundColor: ClassliftColors.PrimaryColorVariant,
 
               );
             },

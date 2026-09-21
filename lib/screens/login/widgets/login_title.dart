@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter/material.dart';
 
 class LoginTitle extends StatelessWidget {
@@ -17,7 +18,7 @@ class LoginTitle extends StatelessWidget {
       child: ShaderMask(
         shaderCallback: (bounds) {
           return const LinearGradient(
-            colors: [Color(0xFF4E7AB5), Color(0xFFDCE4EF)],
+            colors: [ClassliftColors.PrimaryColorVariant, ClassliftColors.loginTitleGradientEnd],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ).createShader(bounds);
@@ -27,7 +28,7 @@ class LoginTitle extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: fontSize,
-            color: Colors.white,
+            color: ClassliftColors.White,
           ),
         ),
       ),

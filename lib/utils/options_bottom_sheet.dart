@@ -261,7 +261,7 @@ class OptionsBottomSheet extends StatelessWidget {
         required Color white,
       }) {
     return Material(
-      color: Colors.transparent,
+      color: ClassliftColors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),

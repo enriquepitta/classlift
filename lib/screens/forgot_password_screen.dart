@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/router/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/background_gradient.dart';
@@ -33,7 +34,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15.0),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: ClassliftColors.White),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
@@ -59,7 +60,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: ClassliftColors.White,
                               ),
                             ),
 
@@ -68,7 +69,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             // Descripción
                             const Text(
                               'Ingresá el correo electrónico asociado a tu cuenta y te enviaremos un enlace para que puedas restablecerla.',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: ClassliftColors.White),
                             ),
                             const SizedBox(height: 20),
 
@@ -100,11 +101,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               curve: Curves.easeInOut,
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF4E7AB5),
+                                  color: ClassliftColors.PrimaryColorVariant,
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF325582).withOpacity(0.7),
+                                      color: ClassliftColors.recoveryText.withOpacity(0.7),
                                       offset: const Offset(0, 4),
                                       blurRadius: 10,
                                       spreadRadius: 5,
@@ -126,8 +127,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   child: const Text('Enviar código'),
                                   style: ElevatedButton.styleFrom(
                                     minimumSize: const Size(double.infinity, 50),
-                                    backgroundColor: Colors.transparent,
-                                    foregroundColor: Colors.white,
+                                    backgroundColor: ClassliftColors.transparent,
+                                    foregroundColor: ClassliftColors.White,
                                     elevation: 0,
                                   ),
                                 ),

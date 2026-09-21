@@ -6,7 +6,8 @@ import 'package:classlift/models/database_models.dart';
 class SelectedSubjectsHomeWidget extends StatefulWidget {
   final bool showCompactView;
   final VoidCallback? onSubjectTap;
-  final VoidCallback? onRefreshRequested; // Callback para cuando se necesite refrescar
+  final VoidCallback?
+      onRefreshRequested; // Callback para cuando se necesite refrescar
 
   const SelectedSubjectsHomeWidget({
     Key? key,
@@ -16,10 +17,12 @@ class SelectedSubjectsHomeWidget extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SelectedSubjectsHomeWidget> createState() => _SelectedSubjectsHomeWidgetState();
+  State<SelectedSubjectsHomeWidget> createState() =>
+      _SelectedSubjectsHomeWidgetState();
 }
 
-class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget> {
+class _SelectedSubjectsHomeWidgetState
+    extends State<SelectedSubjectsHomeWidget> {
   Map<String, Map<int, List<SelectedSubject>>> groupedSubjects = {};
   int totalSubjects = 0;
   bool isLoading = true;
@@ -46,7 +49,8 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
 
       if (mounted) {
         setState(() {
-          groupedSubjects = results[0] as Map<String, Map<int, List<SelectedSubject>>>;
+          groupedSubjects =
+              results[0] as Map<String, Map<int, List<SelectedSubject>>>;
           totalSubjects = results[1] as int;
           isLoading = false;
         });
@@ -87,11 +91,11 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
         margin: EdgeInsets.all(pad),
         padding: EdgeInsets.all(padLarge),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: ClassliftColors.White,
           borderRadius: BorderRadius.circular(radius),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: ClassliftColors.Black.withOpacity(0.05),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -105,7 +109,8 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
               const SizedBox(height: 16),
               Text(
                 'Cargando materias...',
-                style: TextStyle(color: Colors.grey[600], fontSize: subtitleSize),
+                style: TextStyle(
+                    color: ClassliftColors.grey600, fontSize: subtitleSize),
               ),
             ],
           ),
@@ -118,19 +123,20 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
         margin: EdgeInsets.all(pad),
         padding: EdgeInsets.all(pad),
         decoration: BoxDecoration(
-          color: Colors.red[50],
+          color: ClassliftColors.red50,
           borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: Colors.red[200]!),
+          border: Border.all(color: ClassliftColors.red200),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: isTablet ? 40 : 32, color: Colors.red[400]),
+            Icon(Icons.error_outline,
+                size: isTablet ? 40 : 32, color: ClassliftColors.red400),
             const SizedBox(height: 12),
             Text(
               'Error al cargar materias',
               style: TextStyle(
-                color: Colors.red[700],
+                color: ClassliftColors.red700,
                 fontWeight: FontWeight.w700,
                 fontSize: isTablet ? 18 : 16,
               ),
@@ -139,18 +145,25 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
             const SizedBox(height: 8),
             Text(
               error!,
-              style: TextStyle(fontSize: isTablet ? 14 : 12, color: Colors.grey[700]),
+              style: TextStyle(
+                  fontSize: isTablet ? 14 : 12, color: ClassliftColors.grey700),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: _refreshData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[400],
-                padding: EdgeInsets.symmetric(horizontal: isTablet ? 20 : 16, vertical: isTablet ? 14 : 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(chipRadius)),
+                backgroundColor: ClassliftColors.red400,
+                padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? 20 : 16,
+                    vertical: isTablet ? 14 : 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(chipRadius)),
               ),
-              child: Text('Reintentar', style: TextStyle(color: Colors.white, fontSize: isTablet ? 16 : 14)),
+              child: Text('Reintentar',
+                  style: TextStyle(
+                      color: ClassliftColors.White,
+                      fontSize: isTablet ? 16 : 14)),
             ),
           ],
         ),
@@ -162,11 +175,11 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
         margin: EdgeInsets.all(pad),
         padding: EdgeInsets.all(isTablet ? 32 : 24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: ClassliftColors.White,
           borderRadius: BorderRadius.circular(radius),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: ClassliftColors.Black.withOpacity(0.05),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -203,7 +216,7 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: ClassliftColors.black87,
                     height: 1.2,
                   ),
                   textAlign: TextAlign.center,
@@ -212,7 +225,7 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                 Text(
                   'Organizá tu semestre de manera inteligente',
                   style: TextStyle(
-                    color: Colors.grey[700],
+                    color: ClassliftColors.grey700,
                     fontSize: isTablet ? 17 : 16,
                     height: 1.35,
                   ),
@@ -229,19 +242,19 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                     _buildFeatureCard(
                       icon: Icons.calendar_view_week,
                       title: 'Vista\nSemanal',
-                      color: Colors.blue,
+                      color: ClassliftColors.blue,
                       isTablet: isTablet,
                     ),
                     _buildFeatureCard(
                       icon: Icons.notifications_active,
                       title: 'Alertas\nInteligentes',
-                      color: Colors.orange,
+                      color: ClassliftColors.orange,
                       isTablet: isTablet,
                     ),
                     _buildFeatureCard(
                       icon: Icons.analytics,
                       title: 'Progreso\nAcadémico',
-                      color: Colors.green,
+                      color: ClassliftColors.green,
                       isTablet: isTablet,
                     ),
                   ],
@@ -320,12 +333,12 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                 Container(
                   padding: EdgeInsets.all(isTablet ? 14 : 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: ClassliftColors.White.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
                   ),
                   child: Icon(
                     Icons.schedule,
-                    color: Colors.white,
+                    color: ClassliftColors.White,
                     size: headerIconSize,
                   ),
                 ),
@@ -339,13 +352,13 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                         style: TextStyle(
                           fontSize: titleSize,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: ClassliftColors.White,
                         ),
                       ),
                       Text(
                         '$totalSubjects materia${totalSubjects != 1 ? 's' : ''} configurada${totalSubjects != 1 ? 's' : ''}',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.95),
+                          color: ClassliftColors.White.withOpacity(0.95),
                           fontSize: subtitleSize,
                           fontWeight: FontWeight.w600,
                         ),
@@ -354,16 +367,19 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: isTablet ? 12 : 8, vertical: isTablet ? 8 : 6),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: isTablet ? 12 : 8,
+                      vertical: isTablet ? 8 : 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: ClassliftColors.White.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
-                    border: Border.all(color: Colors.white.withOpacity(0.25)),
+                    border: Border.all(
+                        color: ClassliftColors.White.withOpacity(0.25)),
                   ),
                   child: Text(
                     '${groupedSubjects.keys.length}',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: ClassliftColors.White,
                       fontWeight: FontWeight.w700,
                       fontSize: statBadgeFont,
                       letterSpacing: 0.2,
@@ -380,13 +396,14 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
             final careerName = semesterMap.values.first.first.careerName;
 
             return Container(
-              margin: EdgeInsets.symmetric(horizontal: pad, vertical: isTablet ? 10 : 8),
+              margin: EdgeInsets.symmetric(
+                  horizontal: pad, vertical: isTablet ? 10 : 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: ClassliftColors.White,
                 borderRadius: BorderRadius.circular(radius),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: ClassliftColors.Black.withOpacity(0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -410,8 +427,10 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                         Container(
                           padding: EdgeInsets.all(isTablet ? 10 : 8),
                           decoration: BoxDecoration(
-                            color: ClassliftColors.PrimaryColor.withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
+                            color:
+                                ClassliftColors.PrimaryColor.withOpacity(0.10),
+                            borderRadius:
+                                BorderRadius.circular(isTablet ? 10 : 8),
                           ),
                           child: Icon(
                             Icons.school_outlined,
@@ -426,7 +445,7 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: isTablet ? 18 : 16,
-                              color: Colors.black87,
+                              color: ClassliftColors.black87,
                               height: 1.2,
                             ),
                           ),
@@ -460,7 +479,8 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                                   borderRadius: BorderRadius.circular(18),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: ClassliftColors.PrimaryColor.withOpacity(0.22),
+                                      color: ClassliftColors.PrimaryColor
+                                          .withOpacity(0.22),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -469,7 +489,7 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                                 child: Text(
                                   'Semestre $semester',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: ClassliftColors.White,
                                     fontWeight: FontWeight.w700,
                                     fontSize: isTablet ? 13.5 : 12,
                                     letterSpacing: 0.2,
@@ -480,7 +500,7 @@ class _SelectedSubjectsHomeWidgetState extends State<SelectedSubjectsHomeWidget>
                               Text(
                                 '${subjects.length} materia${subjects.length != 1 ? 's' : ''}',
                                 style: TextStyle(
-                                  color: Colors.grey[600],
+                                  color: ClassliftColors.grey600,
                                   fontSize: isTablet ? 14 : 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -538,14 +558,15 @@ class _SubjectChip extends StatelessWidget {
     return ConstrainedBox(
       constraints: BoxConstraints(minWidth: minWidth),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: isTablet ? 14 : 12, vertical: isTablet ? 10 : 8),
+        padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 14 : 12, vertical: isTablet ? 10 : 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FA),
+          color: ClassliftColors.listBackground,
           borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: const Color(0xFFE6EBF0)),
+          border: Border.all(color: ClassliftColors.subjectListBorder),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: ClassliftColors.Black.withOpacity(0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -569,7 +590,7 @@ class _SubjectChip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 14.5 : 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: ClassliftColors.black87,
                   height: 1.2,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -625,7 +646,7 @@ Widget _buildFeatureCard({
         style: TextStyle(
           fontSize: isTablet ? 13.5 : 12,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: ClassliftColors.black87,
           height: 1.2,
         ),
       ),

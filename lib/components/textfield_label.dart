@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
@@ -44,7 +45,7 @@ class TextfieldLabel extends StatelessWidget {
                 style: TextStyle(
                   fontSize: labelFontSize,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFFA3C1E2),
+                  color: ClassliftColors.SecondaryColor,
                 ),
               ),
               SizedBox(height: spacingHeight),
@@ -74,17 +75,17 @@ class TextfieldLabel extends StatelessWidget {
                         },
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Color(0xFFF0F0F0),
+                          fillColor: ClassliftColors.semesterColorEven,
                           prefixIcon: Icon(
                             icon,
-                            color: Color(0xFF66788A),
+                            color: ClassliftColors.inputMuted,
                             size: iconSize,
                           ),
                           suffixIcon: obscureText
                               ? IconButton(
                             icon: Icon(
                               isObscure ? Icons.visibility_off : Icons.visibility,
-                              color: Color(0xFF66788A),
+                              color: ClassliftColors.inputMuted,
                               size: iconSize,
                             ),
                             constraints: BoxConstraints(
@@ -115,39 +116,39 @@ class TextfieldLabel extends StatelessWidget {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
                             borderSide: BorderSide(
-                              color: Color(0xFF4C9AFF),
+                              color: ClassliftColors.inputFocus,
                               width: borderWidth,
                             ),
                           ),
                           errorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
                             borderSide: BorderSide(
-                              color: Color(0xFFA41E25),
+                              color: ClassliftColors.inputError,
                               width: borderWidth,
                             ),
                           ),
                           focusedErrorBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(borderRadius),
                             borderSide: BorderSide(
-                              color: Color(0xFFA41E25),
+                              color: ClassliftColors.inputError,
                               width: borderWidth,
                             ),
                           ),
                           hintText: hintText ?? 'Ingresá tu ${label.toLowerCase()}',
                           hintStyle: TextStyle(
-                            color: Color(0xFF66788A).withOpacity(0.6),
+                            color: ClassliftColors.inputMuted.withOpacity(0.6),
                             fontSize: textFieldFontSize - 1, // Hint ligeramente más pequeño
                             fontWeight: FontWeight.w400,
                           ),
                           isDense: true,
                           errorStyle: TextStyle(
-                            color: Color(0xFFA41E25),
+                            color: ClassliftColors.inputError,
                             fontSize: errorFontSize,
                             height: 1.4,
                           ),
                           helperText: null,
                           helperStyle: TextStyle(
-                            color: Color(0xFF66788A),
+                            color: ClassliftColors.inputMuted,
                             fontSize: errorFontSize,
                             fontWeight: FontWeight.w300,
                           ),

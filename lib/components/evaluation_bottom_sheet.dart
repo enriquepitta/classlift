@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -15,8 +16,8 @@ Future<void> showEvaluationBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: const Color(0xFFFAFAFF),
-      barrierColor: const Color(0xFF141B46).withValues(alpha: 0.6),
+      backgroundColor: ClassliftColors.evaluationBackground,
+      barrierColor: ClassliftColors.evaluationBarrier.withValues(alpha: 0.6),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -40,9 +41,9 @@ class EvaluationBottomSheet extends StatelessWidget {
     required this.accentColor,
   });
 
-  static const _ink = Color(0xFF11155C);
-  static const _muted = Color(0xFF7275B8);
-  static const _lavender = Color(0xFFEEEEFA);
+  static const _ink = ClassliftColors.evaluationText;
+  static const _muted = ClassliftColors.evaluationMuted;
+  static const _lavender = ClassliftColors.evaluationSoftBackground;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +54,7 @@ class EvaluationBottomSheet extends StatelessWidget {
     final date =
         DateFormat("EEEE d 'de' MMMM 'de' y", 'es_ES').format(evaluation.date);
     final accentTextColor =
-        accentColor.computeLuminance() <= 0.183 ? Colors.white : Colors.black;
+        accentColor.computeLuminance() <= 0.183 ? ClassliftColors.White : ClassliftColors.Black;
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -184,7 +185,7 @@ class EvaluationBottomSheet extends StatelessWidget {
                       )),
                     ]),
                   ),
-                const Divider(height: 28, color: Color(0xFFE0E1F6)),
+                const Divider(height: 28, color: ClassliftColors.evaluationDivider),
                 LayoutBuilder(builder: (context, constraints) {
                   final items = [
                     _metadata(Icons.groups_outlined, 'Grupo', 'No informado'),

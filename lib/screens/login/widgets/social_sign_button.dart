@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -17,8 +18,8 @@ class SocialSignInButton extends StatelessWidget {
     required this.onPressed,
     required this.iconAsset,
     this.label,
-    this.backgroundColor = const Color(0xFFE3F0F9),
-    this.borderColor = const Color(0xFF91B0FE),
+    this.backgroundColor = ClassliftColors.socialButtonBackground,
+    this.borderColor = ClassliftColors.socialButtonBorder,
     this.iconSize = 24.0,
     this.height = 50.0,
     this.width = 80.0,
@@ -131,7 +132,7 @@ class SocialSignInButton extends StatelessWidget {
               Text(
                 label!,
                 style: const TextStyle(
-                  color: Colors.black87,
+                  color: ClassliftColors.black87,
                   fontWeight: FontWeight.w500,
                 ),
               ),

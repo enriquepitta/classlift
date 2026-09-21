@@ -30,6 +30,26 @@ void main() {
     expect(service.session, isNull);
   });
 
+  test('authenticates against the selected Moodle site', () async {
+    final service = MoodleAuthService(
+      siteUrl: 'https://grado.pol.una.py',
+      client: MockClient((request) async {
+        expect(request.url.host, 'grado.pol.una.py');
+        return http.Response(
+          request.url.path == '/login/token.php'
+              ? '{"token":"test-token"}'
+              : '{"userid":7,"fullname":"Poli Student"}',
+          200,
+        );
+      }),
+    );
+
+    final session = await service.signIn('student', 'password');
+
+    expect(session.siteUrl, 'https://grado.pol.una.py');
+    expect(session.fullName, 'Poli Student');
+  });
+
   for (final response in [
     http.Response(
         jsonEncode({'error': 'Invalid login', 'errorcode': 'invalidlogin'}),

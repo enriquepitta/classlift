@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/components/background_gradient.dart';
 import 'package:classlift/screens/home_screen.dart';
 import 'package:flutter/cupertino.dart';
@@ -30,7 +31,7 @@ class SuccessScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ClassliftColors.White,
                     ),
                     textAlign: TextAlign.center, // Asegura que el texto esté centrado
                   ),
@@ -40,7 +41,7 @@ class SuccessScreen extends StatelessWidget {
                     'Estás listo para comenzar a organizar tus tareas y horarios.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white70,
+                      color: ClassliftColors.white70,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -69,8 +70,8 @@ class SuccessScreen extends StatelessWidget {
                     child: const Text('Ir al inicio'),
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 50),
-                      backgroundColor: const Color(0xFF4E7AB5),
-                      foregroundColor: Colors.white,
+                      backgroundColor: ClassliftColors.PrimaryColorVariant,
+                      foregroundColor: ClassliftColors.White,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/error_bottom_sheet.dart';
 import '../../home_screen.dart';
 import '../../verification_email_screen.dart';
@@ -33,6 +34,7 @@ class LoginController {
   final ValueNotifier<bool> isRegisteringNotifier = ValueNotifier(false);
   bool isLoading = false;
   bool isKeyboardVisible = false;
+  bool _googleSignInInitialized = false;
 
   // Animación
   late final AnimationController _titleAnimationController;
@@ -76,27 +78,90 @@ class LoginController {
 
     try {
       if (isRegisteringNotifier.value) {
-        final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final userCredential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
 
-        await userCredential.user?.updateDisplayName(nameController.text.trim());
+        await userCredential.user
+            ?.updateDisplayName(nameController.text.trim());
         await sendVerificationEmail(userCredential.user);
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VerificationScreen()));
+        if (!context.mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => VerificationScreen()),
+        );
       } else {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
+        if (!context.mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
       }
     } on FirebaseAuthException catch (e) {
+      if (!context.mounted) return;
       final message = _getErrorMessage(e.code);
       showErrorBottomSheet(context, message);
     } finally {
       setLoading(false);
     }
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      await _ensureGoogleSignInInitialized();
+
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final googleAuth = googleUser.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        if (!context.mounted) return;
+        showErrorBottomSheet(
+          context,
+          'No se pudo obtener la sesión de Google. Intentá nuevamente.',
+        );
+        return;
+      }
+
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (!context.mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) return;
+      if (!context.mounted) return;
+
+      showErrorBottomSheet(
+        context,
+        _getGoogleSignInErrorMessage(e.code),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!context.mounted) return;
+      showErrorBottomSheet(context, _getErrorMessage(e.code));
+    } catch (_) {
+      if (!context.mounted) return;
+      showErrorBottomSheet(
+        context,
+        'No se pudo iniciar sesión con Google. Intentá nuevamente.',
+      );
+    }
+  }
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (_googleSignInInitialized) return;
+
+    await GoogleSignIn.instance.initialize();
+    _googleSignInInitialized = true;
   }
 
   String _getErrorMessage(String code) {
@@ -109,8 +174,23 @@ class LoginController {
         return 'No existe una cuenta con este correo.';
       case 'wrong-password':
         return 'Contraseña incorrecta.';
+      case 'account-exists-with-different-credential':
+        return 'Ya existe una cuenta con este correo usando otro método de inicio de sesión.';
+      case 'invalid-credential':
+        return 'La sesión no es válida. Intentá iniciar sesión nuevamente.';
       default:
         return 'Ocurrió un error inesperado.';
+    }
+  }
+
+  String _getGoogleSignInErrorMessage(GoogleSignInExceptionCode code) {
+    switch (code) {
+      case GoogleSignInExceptionCode.interrupted:
+        return 'El inicio de sesión con Google fue interrumpido.';
+      case GoogleSignInExceptionCode.uiUnavailable:
+        return 'Google no pudo mostrar la pantalla de inicio de sesión.';
+      default:
+        return 'No se pudo iniciar sesión con Google. Intentá nuevamente.';
     }
   }
 

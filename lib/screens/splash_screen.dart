@@ -1,5 +1,6 @@
 import 'package:classlift/components/background_gradient.dart';
 import 'package:classlift/router/app_routes.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
@@ -11,20 +12,30 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  static const _splashDuration = Duration(milliseconds: 1500);
+
   late AnimationController _animationController;
+  bool _didNavigate = false;
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(
-        vsync: this,
-        duration: const Duration(seconds: 4),
+      vsync: this,
+      duration: _splashDuration,
     );
   }
 
   void _navigateToNextScreen() {
-    context.go(AppRoutes.login);
+    if (!mounted || _didNavigate) return;
+    _didNavigate = true;
+
+    final nextRoute = FirebaseAuth.instance.currentUser == null
+        ? AppRoutes.login
+        : AppRoutes.home;
+    context.go(nextRoute);
   }
 
   @override
@@ -50,12 +61,13 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   fit: BoxFit.contain,
                   controller: _animationController,
                   onLoaded: (composition) {
-                    // Configurar el controlador para la animación
+                    final animationDuration = composition.duration;
                     _animationController
-                      ..duration = composition.duration
+                      ..duration = animationDuration > _splashDuration
+                          ? _splashDuration
+                          : animationDuration
                       ..forward();
 
-                    // Escuchar el evento de finalización
                     _animationController.addStatusListener((status) {
                       if (status == AnimationStatus.completed) {
                         _navigateToNextScreen();

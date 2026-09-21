@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter/material.dart';
 
 class BackgroundGradient extends StatelessWidget {
@@ -14,16 +15,16 @@ class BackgroundGradient extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [
             // BK v2
-            Color(0xFF333D86),
-            Color(0xFF333D86),
-            Color(0xFF4E7AB5),
-            Color(0xFFFFFFFF),
-            Color(0xFFFFFFFF),
+            ClassliftColors.PrimaryColor,
+            ClassliftColors.PrimaryColor,
+            ClassliftColors.PrimaryColorVariant,
+            ClassliftColors.White,
+            ClassliftColors.White,
 
             // BK v3
-            // Color(0xFF333D86),
-            // Color(0xFF4E7AB5),
-            // Color(0xFFFFFFFF),
+            // ClassliftColors.PrimaryColor,
+            // ClassliftColors.PrimaryColorVariant,
+            // ClassliftColors.White,
           ],
         ),
       ),

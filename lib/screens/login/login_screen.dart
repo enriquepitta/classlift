@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/background_gradient.dart';
@@ -48,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final spacing = screenSize.height * 0.025;
 
     return Scaffold(
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: ClassliftColors.blueAccent,
       resizeToAvoidBottomInset: true,
       body: GestureDetector(
         onTap: _controller.dismissKeyboard,

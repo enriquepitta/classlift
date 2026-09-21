@@ -93,7 +93,7 @@ class PrimaryButton extends StatelessWidget {
           disabledForegroundColor: txtColor.withOpacity(0.7),
           padding: btnPadding,
           elevation: elevation,
-          shadowColor: enableShadow ? btnShadowColor : Colors.transparent,
+          shadowColor: enableShadow ? btnShadowColor : ClassliftColors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(btnBorderRadius),
           ),

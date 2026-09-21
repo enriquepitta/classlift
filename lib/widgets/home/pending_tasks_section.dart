@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -7,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:classlift/models/moodle_task.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 
-const _ink = Color(0xFF34377D);
+const _ink = ClassliftColors.taskText;
 
 class PendingTasksSection extends StatefulWidget {
   final Future<MoodleTasksResult>? future;
@@ -72,7 +73,7 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                           onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                   builder: (_) =>
-                                      _AllTasksScreen(tasks: tasks))),
+                                      MoodleTasksScreen(tasks: tasks))),
                           style: TextButton.styleFrom(foregroundColor: _ink),
                           child: const Row(
                               mainAxisSize: MainAxisSize.min,
@@ -89,13 +90,7 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
               ),
               const SizedBox(height: 10),
               if (future == null)
-                _Notice(
-                    message: 'Conectá Moodle para ver tus próximas entregas.',
-                    action: 'Conectar Moodle',
-                    onTap: () async {
-                      await context.push('/login/moodle');
-                      if (context.mounted) onRefresh();
-                    })
+                const SizedBox.shrink()
               else if (loading)
                 const SizedBox(
                     height: 180,
@@ -128,7 +123,7 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                       style: TextButton.styleFrom(foregroundColor: _ink),
                       onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (_) => _AllTasksScreen(
+                              builder: (_) => MoodleTasksScreen(
                                   tasks: overdue, title: 'Tareas vencidas'))),
                       child: Text(
                           '${overdue.length} ${overdue.length == 1 ? 'vencida' : 'vencidas'}'),
@@ -154,7 +149,7 @@ class _Notice extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: const Color(0xFFEEEDF9),
+            color: ClassliftColors.taskEmptyBackground,
             borderRadius: BorderRadius.circular(16)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(message, style: const TextStyle(color: _ink)),
@@ -235,7 +230,8 @@ class _TaskCarouselState extends State<_TaskCarousel> {
                                         shape: BoxShape.circle,
                                         color: index == _page
                                             ? _ink
-                                            : const Color(0xFFBDC8E6)),
+                                            : ClassliftColors
+                                                .taskPageIndicator),
                                   ))),
                             ),
                           )),
@@ -250,10 +246,10 @@ class MoodleTaskCard extends StatelessWidget {
   const MoodleTaskCard({super.key, required this.task, this.now});
 
   static const _palette = [
-    (Color(0xFFFBE4F1), Color(0xFFA63B77)),
-    (Color(0xFFDEF5F0), Color(0xFF277C79)),
-    (Color(0xFFE6EAFC), Color(0xFF5366AB)),
-    (Color(0xFFFFEEDC), Color(0xFF9D6428)),
+    (ClassliftColors.taskPinkBackground, ClassliftColors.taskPinkAccent),
+    (ClassliftColors.taskMintBackground, ClassliftColors.taskMintAccent),
+    (ClassliftColors.taskBlueBackground, ClassliftColors.taskBlueAccent),
+    (ClassliftColors.taskOrangeBackground, ClassliftColors.taskOrangeAccent),
   ];
 
   @override
@@ -323,7 +319,7 @@ class MoodleTaskCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            color: Color(0xFF747598),
+                            color: ClassliftColors.taskMuted,
                             fontSize: 12,
                             height: 1.3)),
                     const Spacer(),
@@ -351,7 +347,7 @@ class MoodleTaskCard extends StatelessWidget {
                                     horizontal: 9, vertical: 5),
                                 decoration: BoxDecoration(
                                     color: urgent || overdue
-                                        ? const Color(0xFFFFDCE2)
+                                        ? ClassliftColors.taskOverdueBackground
                                         : colors.$2.withValues(alpha: 0.09),
                                     borderRadius: BorderRadius.circular(20)),
                                 child: Row(
@@ -360,7 +356,7 @@ class MoodleTaskCard extends StatelessWidget {
                                       Icon(Icons.access_time,
                                           size: 14,
                                           color: urgent || overdue
-                                              ? const Color(0xFFD53D50)
+                                              ? ClassliftColors.taskOverdue
                                               : colors.$2),
                                       const SizedBox(width: 5),
                                       Flexible(
@@ -369,7 +365,8 @@ class MoodleTaskCard extends StatelessWidget {
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
                                                   color: urgent || overdue
-                                                      ? const Color(0xFFD53D50)
+                                                      ? ClassliftColors
+                                                          .taskOverdue
                                                       : colors.$2))),
                                     ]),
                               ),
@@ -395,15 +392,126 @@ String _dateLabel(DateTime? due, DateTime now) {
   return '$label · ${DateFormat('HH:mm').format(due)}';
 }
 
-class _AllTasksScreen extends StatelessWidget {
+class MoodleTasksScreen extends StatefulWidget {
   final List<MoodleTask> tasks;
   final String title;
-  const _AllTasksScreen(
-      {required this.tasks, this.title = 'Tareas pendientes'});
+  const MoodleTasksScreen(
+      {super.key, this.tasks = const [], this.title = 'Tareas pendientes'});
+
+  @override
+  State<MoodleTasksScreen> createState() => _MoodleTasksScreenState();
+}
+
+class _MoodleTasksScreenState extends State<MoodleTasksScreen> {
+  Future<MoodleTasksResult>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.tasks.isEmpty) {
+      _future = MoodleTasksService.lastLoad ??
+          MoodleTasksService.loadCurrentSession();
+    }
+  }
+
+  void _refresh() {
+    setState(() => _future = MoodleTasksService.loadCurrentSession());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.tasks.isNotEmpty) {
+      return _TasksListScaffold(title: widget.title, tasks: widget.tasks);
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: const _TasksBackButton(),
+        title: Text(widget.title),
+      ),
+      body: FutureBuilder<MoodleTasksResult>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (_future == null) {
+            return _TasksStateMessage(
+              icon: Icons.school_outlined,
+              title: 'Conectá Moodle',
+              message:
+                  'Conectá tu campus para ver tus entregas pendientes acá.',
+              actionLabel: 'Conectar Moodle',
+              onAction: () => context.push('/login/moodle'),
+            );
+          }
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return _TasksStateMessage(
+              icon: Icons.sync_problem_rounded,
+              title: 'No se pudieron cargar tus tareas',
+              message: 'Intentá actualizar o conectá Moodle nuevamente.',
+              actionLabel: 'Actualizar',
+              onAction: _refresh,
+            );
+          }
+
+          final tasks =
+              snapshot.data?.allPendingAt(DateTime.now()) ?? <MoodleTask>[];
+          if (tasks.isEmpty) {
+            return _TasksStateMessage(
+              icon: Icons.check_circle_outline_rounded,
+              title: 'Sin tareas pendientes',
+              message:
+                  'Cuando Moodle tenga entregas pendientes aparecerán acá.',
+              actionLabel: 'Actualizar',
+              onAction: _refresh,
+            );
+          }
+          return _TasksList(tasks: tasks);
+        },
+      ),
+    );
+  }
+}
+
+class _TasksListScaffold extends StatelessWidget {
+  final String title;
+  final List<MoodleTask> tasks;
+  const _TasksListScaffold({required this.title, required this.tasks});
+
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
+        appBar: AppBar(
+          leading: const _TasksBackButton(),
+          title: Text(title),
+        ),
+        body: _TasksList(tasks: tasks),
+      );
+}
+
+class _TasksBackButton extends StatelessWidget {
+  const _TasksBackButton();
+
+  @override
+  Widget build(BuildContext context) => BackButton(
+        onPressed: () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/home');
+          }
+        },
+      );
+}
+
+class _TasksList extends StatelessWidget {
+  final List<MoodleTask> tasks;
+  const _TasksList({required this.tasks});
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
           for (final task in tasks)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
@@ -416,7 +524,61 @@ class _AllTasksScreen extends StatelessWidget {
                           200,
                   child: MoodleTaskCard(task: task)),
             ),
-        ]),
+        ],
+      );
+}
+
+class _TasksStateMessage extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const _TasksStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: _ink, size: 44),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: ClassliftColors.taskMuted,
+                  fontSize: 14,
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: onAction,
+                child: Text(actionLabel),
+              ),
+            ],
+          ),
+        ),
       );
 }
 

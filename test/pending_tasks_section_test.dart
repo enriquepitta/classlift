@@ -5,11 +5,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:classlift/models/moodle_task.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 import 'package:classlift/widgets/home/pending_tasks_section.dart';
 
 void main() {
+  testWidgets('tasks opened directly have a back button to Home',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/tasks',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (_, __) => const Scaffold(body: Text('Home')),
+        ),
+        GoRoute(
+          path: '/tasks',
+          builder: (_, __) => const MoodleTasksScreen(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    expect(find.byType(BackButton), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Home'), findsOneWidget);
+  });
+
   testWidgets(
       'overdue tasks have a separate link instead of occupying the carousel',
       (tester) async {
@@ -37,6 +62,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Tareas vencidas'), findsOneWidget);
     expect(find.text('Tarea antigua'), findsOneWidget);
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('1 vencida'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

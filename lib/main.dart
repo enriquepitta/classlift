@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -23,7 +24,7 @@ class Classlift extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'ClassLift',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: ClassliftColors.deepPurple),
         useMaterial3: true,
         fontFamily: 'Poppins',
         textTheme: const TextTheme(

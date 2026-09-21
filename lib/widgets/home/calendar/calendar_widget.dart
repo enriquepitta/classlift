@@ -11,8 +11,10 @@ class CalendarWidget extends StatelessWidget {
   final Function(DateTime, DateTime) onDaySelected;
   final Function(CalendarFormat) onFormatChanged;
   final Function(DateTime) onPageChanged;
+  final bool showBackground;
 
   CalendarWidget({
+    this.showBackground = true,
     required this.focusedDay,
     required this.selectedDay,
     required this.calendarFormat,
@@ -25,9 +27,11 @@ class CalendarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: ClassliftColors.primaryGradient,
-      ),
+      decoration: showBackground
+          ? BoxDecoration(
+              gradient: ClassliftColors.primaryGradient,
+            )
+          : null,
       child: SafeArea(
         child: TableCalendar(
           locale: 'es_ES',
@@ -40,6 +44,7 @@ class CalendarWidget extends StatelessWidget {
           onFormatChanged: onFormatChanged,
           onPageChanged: onPageChanged,
           daysOfWeekHeight: 40,
+          rowHeight: calendarFormat == CalendarFormat.week ? 38 : 42,
           calendarStyle: CalendarStyle(
             weekendTextStyle: const TextStyle(
               color: ClassliftColors.White,
@@ -60,7 +65,7 @@ class CalendarWidget extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
             outsideTextStyle: const TextStyle(
-              color: Colors.white54,
+              color: ClassliftColors.white54,
             ),
           ),
           headerStyle: HeaderStyle(
@@ -117,12 +122,12 @@ class CalendarWidget extends StatelessWidget {
                   duration: const Duration(milliseconds: 220),
                   curve: Curves.easeOutCubic,
                   width: 38,
-                  height: 40,
+                  height: 34,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected
                         ? ClassliftColors.SecondaryColor
-                        : Colors.transparent,
+                        : ClassliftColors.transparent,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(10),
                     ),
@@ -175,7 +180,7 @@ class CalendarWidget extends StatelessWidget {
     final textColor = isSelected
         ? ClassliftColors.PrimaryColor
         : isOutsideMonth
-            ? Colors.white54
+            ? ClassliftColors.white54
             : isToday
                 ? ClassliftColors.SecondaryColor
                 : ClassliftColors.White;
@@ -190,11 +195,12 @@ class CalendarWidget extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         width: 38,
-        height: 42,
+        height: 38,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color:
-              isSelected ? ClassliftColors.SecondaryColor : Colors.transparent,
+          color: isSelected
+              ? ClassliftColors.SecondaryColor
+              : ClassliftColors.transparent,
           borderRadius: isWeekView
               ? const BorderRadius.vertical(bottom: Radius.circular(10))
               : BorderRadius.circular(10),

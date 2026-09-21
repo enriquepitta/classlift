@@ -26,7 +26,7 @@ class CalendarFooter extends StatelessWidget {
                 ? Icons.expand_more
                 : Icons.expand_less,
             color: ClassliftColors.White,
-            size: 20,
+            size: 25,
           ),
         ),
       ),

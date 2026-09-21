@@ -37,7 +37,7 @@ void showErrorBottomSheet(BuildContext context, String errorMessage) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: ClassliftColors.transparent,
     barrierColor: primaryBlue.withOpacity(0.15),
     builder: (context) {
       return DraggableScrollableSheet(
