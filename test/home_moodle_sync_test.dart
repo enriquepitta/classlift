@@ -122,4 +122,26 @@ void main() {
                   200);
             }));
   });
+
+  testWidgets('closing schedule recommendation keeps EDUCA visible',
+      (tester) async {
+    final auth = MoodleAuthService.instance;
+    auth.signOut();
+    MoodleTasksService.clearCache();
+
+    await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Configurá tu horario'), findsOneWidget);
+    expect(find.text('EDUCA Moodle'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Cerrar recomendación').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Configurá tu horario'), findsNothing);
+    expect(find.text('EDUCA Moodle'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox());
+  });
 }

@@ -1,6 +1,7 @@
 import 'package:classlift/utils/classlift_colors.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -52,6 +53,8 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
           final tasks = available?.allPendingAt(now) ?? <MoodleTask>[];
           final upcoming = available?.upcomingAt(now) ?? <MoodleTask>[];
           final overdue = available?.overdueAt(now) ?? <MoodleTask>[];
+          final overdueLabel =
+              '${overdue.length} ${overdue.length == 1 ? 'vencida' : 'vencidas'}';
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -61,13 +64,46 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                     alignment: MainAxisAlignment.spaceBetween,
                     overflowAlignment: OverflowBarAlignment.end,
                     children: [
-                      Text('Tareas pendientes',
-                          style: TextStyle(
-                              color: _ink,
-                              fontSize: MediaQuery.sizeOf(context).width > 600
-                                  ? 24
-                                  : 18,
-                              fontWeight: FontWeight.w800)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Tareas pendientes',
+                              style: TextStyle(
+                                  color: _ink,
+                                  fontSize:
+                                      MediaQuery.sizeOf(context).width > 600
+                                          ? 24
+                                          : 18,
+                                  fontWeight: FontWeight.w800)),
+                          if (overdue.isNotEmpty)
+                            InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => MoodleTasksScreen(
+                                          tasks: overdue,
+                                          title: 'Tareas vencidas'))),
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded,
+                                        size: 15,
+                                        color: ClassliftColors.taskOverdue),
+                                    const SizedBox(width: 5),
+                                    Text(overdueLabel,
+                                        style: const TextStyle(
+                                            color: ClassliftColors.taskOverdue,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                       if (tasks.isNotEmpty)
                         TextButton(
                           onPressed: () => Navigator.of(context).push(
@@ -115,19 +151,6 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                     key: ValueKey(
                         upcoming.take(4).map((task) => task.id).join(',')),
                     tasks: upcoming.take(4).toList(),
-                  ),
-                if (overdue.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextButton(
-                      style: TextButton.styleFrom(foregroundColor: _ink),
-                      onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) => MoodleTasksScreen(
-                                  tasks: overdue, title: 'Tareas vencidas'))),
-                      child: Text(
-                          '${overdue.length} ${overdue.length == 1 ? 'vencida' : 'vencidas'}'),
-                    ),
                   ),
               ],
             ],
@@ -271,109 +294,132 @@ class MoodleTaskCard extends StatelessWidget {
                 : task.submissionStatus == 'draft'
                     ? 'Borrador'
                     : 'Pendiente';
-    return Material(
-      color: colors.$1,
+    return ClipRRect(
       borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _showTask(context, task),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: colors.$2, width: 6))),
-          child: Stack(children: [
-            Positioned(
-                right: 18,
-                top: 22,
-                child: ExcludeSemantics(
-                    child: Transform.rotate(
-                  angle: 0.24,
-                  child: Icon(Icons.description_outlined,
-                      size: 66, color: colors.$2.withValues(alpha: 0.10)),
-                ))),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 16, 16, 16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(task.courseName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: colors.$2,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 7),
-                    Text(task.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: _ink,
-                            fontSize: 17,
-                            height: 1.2,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text(
-                        task.description.isEmpty
-                            ? 'Consultá la consigna en Moodle.'
-                            : task.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: ClassliftColors.taskMuted,
-                            fontSize: 12,
-                            height: 1.3)),
-                    const Spacer(),
-                    SizedBox(
-                        width: double.infinity,
-                        child: OverflowBar(
-                            alignment: MainAxisAlignment.spaceBetween,
-                            overflowAlignment: OverflowBarAlignment.end,
-                            spacing: 12,
-                            overflowSpacing: 6,
-                            children: [
-                              Row(mainAxisSize: MainAxisSize.min, children: [
-                                Icon(Icons.calendar_today_outlined,
-                                    size: 16, color: colors.$2),
-                                const SizedBox(width: 7),
-                                Flexible(
-                                    child: Text(_dateLabel(due, current),
-                                        style: TextStyle(
-                                            color: colors.$2,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600))),
-                              ]),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 9, vertical: 5),
-                                decoration: BoxDecoration(
-                                    color: urgent || overdue
-                                        ? ClassliftColors.taskOverdueBackground
-                                        : colors.$2.withValues(alpha: 0.09),
-                                    borderRadius: BorderRadius.circular(20)),
-                                child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.access_time,
-                                          size: 14,
-                                          color: urgent || overdue
-                                              ? ClassliftColors.taskOverdue
-                                              : colors.$2),
-                                      const SizedBox(width: 5),
-                                      Flexible(
-                                          child: Text(badge,
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: urgent || overdue
-                                                      ? ClassliftColors
-                                                          .taskOverdue
-                                                      : colors.$2))),
-                                    ]),
-                              ),
-                            ])),
-                  ]),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Material(
+          color: colors.$1.withValues(alpha: 0.54),
+          child: InkWell(
+            onTap: () => _showTask(context, task),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: colors.$2, width: 6),
+                  top: BorderSide(
+                    color: ClassliftColors.White.withValues(alpha: 0.40),
+                  ),
+                  right: BorderSide(
+                    color: ClassliftColors.White.withValues(alpha: 0.22),
+                  ),
+                  bottom: BorderSide(
+                    color: ClassliftColors.White.withValues(alpha: 0.22),
+                  ),
+                ),
+              ),
+              child: Stack(children: [
+                Positioned(
+                    right: 18,
+                    top: 22,
+                    child: ExcludeSemantics(
+                        child: Transform.rotate(
+                      angle: 0.24,
+                      child: Icon(Icons.description_outlined,
+                          size: 66, color: colors.$2.withValues(alpha: 0.10)),
+                    ))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 16, 16, 16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(task.courseName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: colors.$2,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 7),
+                        Text(task.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: _ink,
+                                fontSize: 17,
+                                height: 1.2,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 6),
+                        Text(
+                            task.description.isEmpty
+                                ? 'Consultá la consigna en Moodle.'
+                                : task.description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: ClassliftColors.taskMuted,
+                                fontSize: 12,
+                                height: 1.3)),
+                        const Spacer(),
+                        SizedBox(
+                            width: double.infinity,
+                            child: OverflowBar(
+                                alignment: MainAxisAlignment.spaceBetween,
+                                overflowAlignment: OverflowBarAlignment.end,
+                                spacing: 12,
+                                overflowSpacing: 6,
+                                children: [
+                                  Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.calendar_today_outlined,
+                                            size: 16, color: colors.$2),
+                                        const SizedBox(width: 7),
+                                        Flexible(
+                                            child: Text(
+                                                _dateLabel(due, current),
+                                                style: TextStyle(
+                                                    color: colors.$2,
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        FontWeight.w600))),
+                                      ]),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 9, vertical: 5),
+                                    decoration: BoxDecoration(
+                                        color: urgent || overdue
+                                            ? ClassliftColors
+                                                .taskOverdueBackground
+                                            : colors.$2.withValues(alpha: 0.09),
+                                        borderRadius:
+                                            BorderRadius.circular(20)),
+                                    child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.access_time,
+                                              size: 14,
+                                              color: urgent || overdue
+                                                  ? ClassliftColors.taskOverdue
+                                                  : colors.$2),
+                                          const SizedBox(width: 5),
+                                          Flexible(
+                                              child: Text(badge,
+                                                  style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: urgent || overdue
+                                                          ? ClassliftColors
+                                                              .taskOverdue
+                                                          : colors.$2))),
+                                        ]),
+                                  ),
+                                ])),
+                      ]),
+                ),
+              ]),
             ),
-          ]),
+          ),
         ),
       ),
     );

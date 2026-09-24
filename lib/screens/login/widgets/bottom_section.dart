@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:classlift/utils/classlift_colors.dart';
 import '../controller/login_controller.dart';
 
 class BottomSection extends StatefulWidget {
@@ -34,12 +35,15 @@ class _BottomSectionState extends State<BottomSection> {
               gradient: const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF639FF2), Color(0xFF4885E7)],
+                colors: [
+                  ClassliftColors.PrimaryColor,
+                  ClassliftColors.primaryGradientEnd,
+                ],
               ),
-              border: Border.all(color: const Color(0xFF88B7FC)),
+              border: Border.all(color: ClassliftColors.calendarSurface),
               boxShadow: const [
                 BoxShadow(
-                    color: Color(0x335D96EC),
+                    color: Color(0x33333D86),
                     blurRadius: 24,
                     offset: Offset(0, 12)),
               ],
@@ -81,7 +85,7 @@ class _BottomSectionState extends State<BottomSection> {
                           alignment: Alignment.centerRight,
                           child: CircleAvatar(
                             radius: 17,
-                            backgroundColor: Color(0x337EB4FF),
+                            backgroundColor: Color(0x26FFFFFF),
                             child: Icon(Icons.chevron_right_rounded,
                                 color: Colors.white, size: 28),
                           ),

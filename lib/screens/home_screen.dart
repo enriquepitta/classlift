@@ -619,6 +619,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children: [
           if (showScheduleCard)
             _DismissibleSetupRecommendation(
+              key: const ValueKey(_dismissedScheduleRecommendationKey),
               onDismissed: () =>
                   _dismissRecommendation(_dismissedScheduleRecommendationKey),
               child: _SetupCard(
@@ -660,6 +661,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildMoodleConnectCard({required VoidCallback onDismissed}) {
     return _DismissibleSetupRecommendation(
+      key: const ValueKey(_dismissedEducaRecommendationKey),
       onDismissed: onDismissed,
       child: _SetupCard(
         backgroundColor: ClassliftColors.educaSoftBackground,
@@ -2578,6 +2580,7 @@ class _DismissibleSetupRecommendation extends StatefulWidget {
   final VoidCallback onDismissed;
 
   const _DismissibleSetupRecommendation({
+    super.key,
     required this.child,
     required this.onDismissed,
   });
