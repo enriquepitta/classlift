@@ -78,6 +78,7 @@ flutter:
     - assets/
     - assets/icons/
     - assets/images/poliplanner_image.svg
+    - assets/images/classlift_home_background.png
     - assets/lottie/classify_splash.json
     - assets/lottie/spinner_lottie.json
     - assets/lottie/spinner_lottie_2.json

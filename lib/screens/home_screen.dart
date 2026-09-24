@@ -1,6 +1,8 @@
 import 'package:classlift/components/evaluation_bottom_sheet.dart';
 import 'package:classlift/utils/excel_picker_service.dart';
 import 'package:classlift/utils/options_bottom_sheet.dart';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -27,6 +29,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  static const _dismissedScheduleRecommendationKey =
+      'dismissed_schedule_recommendation';
+  static const _dismissedEducaRecommendationKey =
+      'dismissed_educa_recommendation';
+
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -39,14 +46,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<UpcomingEvaluation> _nextEvaluations = [];
   bool _isWeeklySummary = false;
   bool _signingOut = false;
+  bool _dismissedScheduleRecommendation = false;
+  bool _dismissedEducaRecommendation = false;
 
   Future<void> _signOut() async {
     if (_signingOut) return;
     setState(() => _signingOut = true);
     try {
-      await FirebaseAuth.instance.signOut();
+      await DatabaseService.clearAllData();
       MoodleAuthService.instance.signOut();
       MoodleTasksService.clearCache();
+      await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       context.go('/login');
     } catch (_) {
@@ -86,6 +96,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadClassesForSelectedDay();
+      _loadRecommendationPreferences();
     });
   }
 
@@ -132,6 +143,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _nextEvaluations = nextEvaluations;
       _isLoadingClasses = false;
     });
+  }
+
+  Future<void> _loadRecommendationPreferences() async {
+    final results = await Future.wait([
+      DatabaseService.getAppSetting(_dismissedScheduleRecommendationKey),
+      DatabaseService.getAppSetting(_dismissedEducaRecommendationKey),
+    ]);
+
+    if (!mounted) return;
+    setState(() {
+      _dismissedScheduleRecommendation = results[0] == 'true';
+      _dismissedEducaRecommendation = results[1] == 'true';
+    });
+  }
+
+  Future<void> _dismissRecommendation(String key) async {
+    if (key == _dismissedScheduleRecommendationKey) {
+      setState(() => _dismissedScheduleRecommendation = true);
+    } else if (key == _dismissedEducaRecommendationKey) {
+      setState(() => _dismissedEducaRecommendation = true);
+    }
+
+    await DatabaseService.setAppSetting(key, 'true');
   }
 
   String _dayNameFor(DateTime day) {
@@ -363,156 +397,191 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final showNewUserState = !_isLoadingClasses && _allActiveClasses.isEmpty;
     final hasMoodleSession = MoodleAuthService.instance.session != null;
     final cachedTasks = hasMoodleSession ? MoodleTasksService.lastResult : null;
+    final showScheduleRecommendation =
+        !_dismissedScheduleRecommendation && showNewUserState;
+    final showEducaRecommendation =
+        !_dismissedEducaRecommendation && !hasMoodleSession;
 
     return Scaffold(
+      extendBody: true,
+      backgroundColor: ClassliftColors.homeBackground,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [ClassliftColors.White, ClassliftColors.BackgroundColor],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Column(
+        color: ClassliftColors.homeBackground,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            DecoratedBox(
-              decoration:
-                  BoxDecoration(gradient: ClassliftColors.primaryGradient),
-              child: Column(children: [
-                FutureBuilder<MoodleTasksResult>(
-                  future: hasMoodleSession ? tasks : null,
-                  initialData: cachedTasks,
-                  builder: (context, snapshot) => HomeProfileHeader(
-                    displayName:
-                        FirebaseAuth.instance.currentUser?.displayName ??
-                            MoodleAuthService.instance.session?.fullName,
-                    email: FirebaseAuth.instance.currentUser?.email,
-                    subtitle: _homeSubtitle(snapshot.data),
-                    signingOut: _signingOut,
-                    onSignOut: _signOut,
-                  ),
-                ),
-                // Calendario (parte superior)
-                ClipRect(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    heightFactor:
-                        _calendarFormat == CalendarFormat.week ? 0.84 : 0.94,
-                    child: MediaQuery.removePadding(
-                      context: context,
-                      removeTop: true,
-                      child: CalendarWidget(
-                        showBackground: false,
-                        focusedDay: _focusedDay,
-                        selectedDay: _selectedDay,
-                        calendarFormat: _calendarFormat,
-                        classCountByDay: _classesCountByDay,
-                        onDaySelected: _toggleWeeklySummary,
-                        onFormatChanged: (fmt) =>
-                            setState(() => _calendarFormat = fmt),
-                        onPageChanged: (foc) =>
-                            setState(() => _focusedDay = foc),
-                      ),
-                    ),
-                  ),
-                ),
-              ]),
-            ),
-            // Footer del calendario
-            CalendarFooter(
-              calendarFormat: _calendarFormat,
-              onTap: () => setState(() {
-                _calendarFormat = _calendarFormat == CalendarFormat.week
-                    ? CalendarFormat.month
-                    : CalendarFormat.week;
-              }),
-            ),
-
-            // Área principal con scroll para mostrar materias
-            Expanded(
-              child: GestureDetector(
-                // Ocupa toda el área disponible, también la parte vacía de
-                // días sin clases. El ScrollView conserva el gesto vertical.
-                behavior: HitTestBehavior.opaque,
-                onHorizontalDragStart: (_) => _horizontalDragDistance = 0,
-                onHorizontalDragUpdate: (details) {
-                  _horizontalDragDistance += details.delta.dx;
-                },
-                onHorizontalDragEnd: _handleDaySwipeEnd,
-                child: SizedBox.expand(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 240),
-                    reverseDuration: const Duration(milliseconds: 180),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    // AnimatedSwitcher centra sus hijos por defecto. Al usar un
-                    // Stack alineado arriba, el horario empieza siempre justo
-                    // debajo del calendario, sin importar cuántas clases haya.
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      alignment: Alignment.topCenter,
-                      children: [
-                        ...previousChildren,
-                        if (currentChild != null) currentChild,
-                      ],
-                    ),
-                    transitionBuilder: (child, animation) {
-                      final isIncoming = child.key == ValueKey(_contentKey);
-                      final offset = isIncoming
-                          ? Offset(_dayTransitionDirection * 0.08, 0)
-                          : Offset(-_dayTransitionDirection * 0.08, 0);
-
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: offset,
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey(_contentKey),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.only(bottom: 100),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (showNewUserState) ...[
-                              _buildNewUserSetupSection(
-                                showEducaCard: !hasMoodleSession,
-                              ),
-                              if (hasMoodleSession)
-                                PendingTasksSection(
-                                  future: tasks,
-                                  onRefresh: _refreshMoodleTasks,
-                                ),
-                            ] else ...[
-                              _isWeeklySummary
-                                  ? _buildWeeklySummary()
-                                  : Column(
-                                      children: [
-                                        _buildDailySchedule(),
-                                        _buildUpcomingEvaluations(),
-                                      ],
-                                    ),
-                              if (hasMoodleSession)
-                                PendingTasksSection(
-                                  future: tasks,
-                                  onRefresh: _refreshMoodleTasks,
-                                )
-                              else
-                                _buildMoodleConnectSection(),
-                            ],
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
-                    ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                child: ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (bounds) => const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.white, Colors.white],
+                    stops: [0, 0.15, 1],
+                  ).createShader(bounds),
+                  child: Image.asset(
+                    'assets/images/classlift_home_background.png',
+                    fit: BoxFit.fitWidth,
+                    excludeFromSemantics: true,
                   ),
                 ),
               ),
+            ),
+            Column(
+              children: [
+                DecoratedBox(
+                  decoration:
+                      BoxDecoration(gradient: ClassliftColors.primaryGradient),
+                  child: Column(children: [
+                    FutureBuilder<MoodleTasksResult>(
+                      future: hasMoodleSession ? tasks : null,
+                      initialData: cachedTasks,
+                      builder: (context, snapshot) => HomeProfileHeader(
+                        displayName:
+                            FirebaseAuth.instance.currentUser?.displayName ??
+                                MoodleAuthService.instance.session?.fullName,
+                        email: FirebaseAuth.instance.currentUser?.email,
+                        subtitle: _homeSubtitle(snapshot.data),
+                        signingOut: _signingOut,
+                        onSignOut: _signOut,
+                      ),
+                    ),
+                    // Calendario (parte superior)
+                    ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: _calendarFormat == CalendarFormat.week
+                            ? 0.84
+                            : 0.94,
+                        child: MediaQuery.removePadding(
+                          context: context,
+                          removeTop: true,
+                          child: CalendarWidget(
+                            showBackground: false,
+                            focusedDay: _focusedDay,
+                            selectedDay: _selectedDay,
+                            calendarFormat: _calendarFormat,
+                            classCountByDay: _classesCountByDay,
+                            onDaySelected: _toggleWeeklySummary,
+                            onFormatChanged: (fmt) =>
+                                setState(() => _calendarFormat = fmt),
+                            onPageChanged: (foc) =>
+                                setState(() => _focusedDay = foc),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+                // Footer del calendario
+                CalendarFooter(
+                  calendarFormat: _calendarFormat,
+                  onTap: () => setState(() {
+                    _calendarFormat = _calendarFormat == CalendarFormat.week
+                        ? CalendarFormat.month
+                        : CalendarFormat.week;
+                  }),
+                ),
+
+                // Área principal con scroll para mostrar materias
+                Expanded(
+                  child: GestureDetector(
+                    // Ocupa toda el área disponible, también la parte vacía de
+                    // días sin clases. El ScrollView conserva el gesto vertical.
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragStart: (_) => _horizontalDragDistance = 0,
+                    onHorizontalDragUpdate: (details) {
+                      _horizontalDragDistance += details.delta.dx;
+                    },
+                    onHorizontalDragEnd: _handleDaySwipeEnd,
+                    child: SizedBox.expand(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 240),
+                        reverseDuration: const Duration(milliseconds: 180),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        // AnimatedSwitcher centra sus hijos por defecto. Al usar un
+                        // Stack alineado arriba, el horario empieza siempre justo
+                        // debajo del calendario, sin importar cuántas clases haya.
+                        layoutBuilder: (currentChild, previousChildren) =>
+                            Stack(
+                          alignment: Alignment.topCenter,
+                          children: [
+                            ...previousChildren,
+                            if (currentChild != null) currentChild,
+                          ],
+                        ),
+                        transitionBuilder: (child, animation) {
+                          final isIncoming = child.key == ValueKey(_contentKey);
+                          final offset = isIncoming
+                              ? Offset(_dayTransitionDirection * 0.08, 0)
+                              : Offset(-_dayTransitionDirection * 0.08, 0);
+
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: offset,
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: KeyedSubtree(
+                          key: ValueKey(_contentKey),
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.only(
+                              bottom:
+                                  92 + MediaQuery.viewPaddingOf(context).bottom,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showNewUserState) ...[
+                                  if (showScheduleRecommendation ||
+                                      showEducaRecommendation)
+                                    _buildNewUserSetupSection(
+                                      showScheduleCard:
+                                          showScheduleRecommendation,
+                                      showEducaCard: showEducaRecommendation,
+                                    ),
+                                  if (hasMoodleSession)
+                                    PendingTasksSection(
+                                      future: tasks,
+                                      onRefresh: _refreshMoodleTasks,
+                                    ),
+                                ] else ...[
+                                  _isWeeklySummary
+                                      ? _buildWeeklySummary()
+                                      : Column(
+                                          children: [
+                                            _buildDailySchedule(),
+                                            _buildUpcomingEvaluations(),
+                                          ],
+                                        ),
+                                  if (hasMoodleSession)
+                                    PendingTasksSection(
+                                      future: tasks,
+                                      onRefresh: _refreshMoodleTasks,
+                                    )
+                                  else if (showEducaRecommendation)
+                                    _buildMoodleConnectSection(),
+                                ],
+                                const SizedBox(height: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -526,10 +595,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           }
           setState(() => _selectedIndex = i);
         },
-        onFilePicked: (_) {},
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showModalBottomSheet(
+        onAddPressed: () => showModalBottomSheet(
           context: context,
           isScrollControlled: true,
           backgroundColor: ClassliftColors.transparent,
@@ -539,37 +605,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             onManual: _handleManual,
           ),
         ),
-        backgroundColor: ClassliftColors.homeAction,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, color: ClassliftColors.White),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget _buildNewUserSetupSection({required bool showEducaCard}) {
+  Widget _buildNewUserSetupSection({
+    required bool showScheduleCard,
+    required bool showEducaCard,
+  }) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Column(
         children: [
-          _SetupCard(
-            backgroundColor: ClassliftColors.setupScheduleBackground,
-            accentColor: ClassliftColors.homeAction,
-            titleColor: ClassliftColors.PrimaryColor,
-            eyebrow: 'Primer paso',
-            title: 'Configurá tu horario',
-            description:
-                'Importá el horario de tu facultad y seleccioná las materias que estás cursando.',
-            actionLabel: 'Importar horario',
-            actionIcon: Icons.description_outlined,
-            illustrationIcon: Icons.calendar_month_rounded,
-            badgeIcon: Icons.add_rounded,
-            onAction: _startExcelImport,
-            footer: const _SetupStepsFooter(),
-          ),
+          if (showScheduleCard)
+            _DismissibleSetupRecommendation(
+              onDismissed: () =>
+                  _dismissRecommendation(_dismissedScheduleRecommendationKey),
+              child: _SetupCard(
+                backgroundColor: ClassliftColors.setupScheduleBackground,
+                accentColor: ClassliftColors.homeAction,
+                titleColor: ClassliftColors.PrimaryColor,
+                eyebrow: 'Recomendado',
+                title: 'Configurá tu horario',
+                description:
+                    'Importá el horario de tu facultad y seleccioná las materias que estás cursando.',
+                actionLabel: 'Importar horario',
+                actionIcon: Icons.description_outlined,
+                illustrationIcon: Icons.calendar_month_rounded,
+                badgeIcon: Icons.add_rounded,
+                onAction: _startExcelImport,
+              ),
+            ),
           if (showEducaCard) ...[
-            const SizedBox(height: 12),
-            _buildMoodleConnectCard(),
+            if (showScheduleCard) const SizedBox(height: 12),
+            _buildMoodleConnectCard(
+              onDismissed: () =>
+                  _dismissRecommendation(_dismissedEducaRecommendationKey),
+            ),
           ],
         ],
       ),
@@ -579,26 +651,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildMoodleConnectSection() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-      child: _buildMoodleConnectCard(),
+      child: _buildMoodleConnectCard(
+        onDismissed: () =>
+            _dismissRecommendation(_dismissedEducaRecommendationKey),
+      ),
     );
   }
 
-  Widget _buildMoodleConnectCard() {
-    return _SetupCard(
-      backgroundColor: ClassliftColors.educaSoftBackground,
-      accentColor: ClassliftColors.educaRed,
-      titleColor: ClassliftColors.educaDarkRed,
-      eyebrowColor: ClassliftColors.educaBadge,
-      eyebrow: 'EDUCA Moodle',
-      title: 'Traé tus tareas al inicio',
-      description:
-          'Conectá tu campus y ClassLift mostrará tus entregas pendientes en cards apenas vuelvas al Home.',
-      actionLabel: 'Conectar Moodle',
-      actionIcon: Icons.school_outlined,
-      illustrationIcon: Icons.assignment_turned_in_rounded,
-      badgeIcon: Icons.sync_rounded,
-      onAction: _connectMoodle,
-      footer: const _EducaBenefitsFooter(),
+  Widget _buildMoodleConnectCard({required VoidCallback onDismissed}) {
+    return _DismissibleSetupRecommendation(
+      onDismissed: onDismissed,
+      child: _SetupCard(
+        backgroundColor: ClassliftColors.educaSoftBackground,
+        accentColor: ClassliftColors.educaRed,
+        titleColor: ClassliftColors.educaDarkRed,
+        eyebrowColor: ClassliftColors.educaBadge,
+        eyebrow: 'EDUCA Moodle',
+        title: 'Traé tus tareas al inicio',
+        description:
+            'Conectá tu campus y ClassLift mostrará tus entregas pendientes en cards apenas vuelvas al Home.',
+        actionLabel: 'Conectar Moodle',
+        actionIcon: Icons.school_outlined,
+        illustrationIcon: Icons.assignment_turned_in_rounded,
+        badgeIcon: Icons.sync_rounded,
+        onAction: _connectMoodle,
+      ),
     );
   }
 
@@ -1144,14 +1221,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         scheduledClass.classroom!,
     ].join(' - ');
 
-    return Container(
-      width: double.infinity,
+    return _SubjectGlassCard(
+      color: cardColor,
+      accentColor: accentColor,
+      radius: 11,
+      borderWidth: 4,
       padding: const EdgeInsets.fromLTRB(7, 5, 6, 5),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(11),
-        border: Border(left: BorderSide(color: accentColor, width: 4)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1475,14 +1550,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return InkWell(
       onTap: () => _goToNextClass(occurrence),
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
+      child: _SubjectGlassCard(
+        color: cardColor,
+        accentColor: accentColor,
         padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border(left: BorderSide(color: accentColor, width: 6)),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2120,16 +2191,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final durationDots =
         _durationInHours(scheduledClass.startTime, scheduledClass.endTime);
 
-    return Container(
+    return _SubjectGlassCard(
+      color: cardColor,
+      accentColor: accentColor,
       margin: inTimeline ? EdgeInsets.zero : const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border(
-          left: BorderSide(color: accentColor, width: 6),
-        ),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2388,7 +2454,6 @@ class _SetupCard extends StatelessWidget {
   final IconData illustrationIcon;
   final IconData badgeIcon;
   final VoidCallback onAction;
-  final Widget footer;
 
   const _SetupCard({
     required this.backgroundColor,
@@ -2403,7 +2468,6 @@ class _SetupCard extends StatelessWidget {
     required this.illustrationIcon,
     required this.badgeIcon,
     required this.onAction,
-    required this.footer,
   });
 
   @override
@@ -2441,7 +2505,7 @@ class _SetupCard extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         _SetupActionButton(
           label: actionLabel,
           icon: actionIcon,
@@ -2451,52 +2515,191 @@ class _SetupCard extends StatelessWidget {
       ],
     );
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(compact ? 16 : 18),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          if (compact)
-            Column(
-              children: [
-                _SetupIllustration(
-                  accentColor: accentColor,
-                  icon: illustrationIcon,
-                  badgeIcon: badgeIcon,
-                ),
-                const SizedBox(height: 8),
-                textContent,
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _SetupIllustration(
-                  accentColor: accentColor,
-                  icon: illustrationIcon,
-                  badgeIcon: badgeIcon,
-                ),
-                const SizedBox(width: 14),
-                Expanded(child: textContent),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.fromLTRB(14, compact ? 12 : 14, 14, 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                backgroundColor.withValues(alpha: 0.70),
+                backgroundColor.withValues(alpha: 0.44),
               ],
             ),
-          const SizedBox(height: 14),
-          Divider(color: ClassliftColors.PrimaryColor.withValues(alpha: 0.08)),
-          const SizedBox(height: 10),
-          footer,
-        ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: compact
+                    ? Column(
+                        children: [
+                          _SetupIllustration(
+                            accentColor: accentColor,
+                            icon: illustrationIcon,
+                            badgeIcon: badgeIcon,
+                          ),
+                          const SizedBox(height: 6),
+                          textContent,
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _SetupIllustration(
+                            accentColor: accentColor,
+                            icon: illustrationIcon,
+                            badgeIcon: badgeIcon,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(child: textContent),
+                        ],
+                      ),
+              ),
+              const SizedBox(width: 4),
+              _SetupDismissButton(color: accentColor),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DismissibleSetupRecommendation extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDismissed;
+
+  const _DismissibleSetupRecommendation({
+    required this.child,
+    required this.onDismissed,
+  });
+
+  @override
+  State<_DismissibleSetupRecommendation> createState() =>
+      _DismissibleSetupRecommendationState();
+}
+
+class _DismissibleSetupRecommendationState
+    extends State<_DismissibleSetupRecommendation>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _sizeAnimation;
+  late final Animation<Offset> _slideAnimation;
+  bool _dismissing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+      reverseDuration: const Duration(milliseconds: 280),
+    )..value = 1;
+    final curve = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _fadeAnimation = curve;
+    _sizeAnimation = curve;
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, -0.04),
+      end: Offset.zero,
+    ).animate(curve);
+  }
+
+  Future<void> _dismiss() async {
+    if (_dismissing) return;
+    _dismissing = true;
+    await _controller.reverse();
+    if (!mounted) return;
+    widget.onDismissed();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SetupDismissScope(
+      onDismiss: _dismiss,
+      child: SizeTransition(
+        sizeFactor: _sizeAnimation,
+        alignment: Alignment.topCenter,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: IgnorePointer(
+              ignoring: _dismissing,
+              child: widget.child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SetupDismissScope extends InheritedWidget {
+  final VoidCallback onDismiss;
+
+  const _SetupDismissScope({
+    required this.onDismiss,
+    required super.child,
+  });
+
+  static VoidCallback of(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_SetupDismissScope>();
+    return scope?.onDismiss ?? () {};
+  }
+
+  @override
+  bool updateShouldNotify(covariant _SetupDismissScope oldWidget) {
+    return onDismiss != oldWidget.onDismiss;
+  }
+}
+
+class _SetupDismissButton extends StatelessWidget {
+  final Color color;
+
+  const _SetupDismissButton({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final onPressed = _SetupDismissScope.of(context);
+
+    return Semantics(
+      button: true,
+      label: 'Cerrar recomendación',
+      child: Material(
+        color: color.withValues(alpha: 0.10),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox.square(
+            dimension: 32,
+            child: Icon(
+              Icons.close_rounded,
+              color: color,
+              size: 18,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -2644,152 +2847,6 @@ class _SetupActionButton extends StatelessWidget {
   }
 }
 
-class _SetupStepsFooter extends StatelessWidget {
-  const _SetupStepsFooter();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            '¿Cómo funciona?',
-            style: TextStyle(
-              color: ClassliftColors.PrimaryColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-                child: _StepItem(number: '1', label: 'Subí el\narchivo Excel')),
-            Icon(Icons.chevron_right_rounded,
-                color: ClassliftColors.PrimaryColor),
-            Expanded(
-                child: _StepItem(number: '2', label: 'Elegí tus\nmaterias')),
-            Icon(Icons.chevron_right_rounded,
-                color: ClassliftColors.PrimaryColor),
-            Expanded(
-                child: _StepItem(number: '3', label: 'Listo\ny a estudiar')),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StepItem extends StatelessWidget {
-  final String number;
-  final String label;
-
-  const _StepItem({required this.number, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 36,
-          height: 32,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: ClassliftColors.setupStepBackground,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            number,
-            style: const TextStyle(
-              color: ClassliftColors.PrimaryColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: ClassliftColors.PrimaryColor.withValues(alpha: 0.72),
-            fontSize: 11,
-            height: 1.22,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EducaBenefitsFooter extends StatelessWidget {
-  const _EducaBenefitsFooter();
-
-  @override
-  Widget build(BuildContext context) {
-    const items = [
-      _BenefitItemData(Icons.check_box_outlined, 'Tareas\ny entregas'),
-      _BenefitItemData(Icons.chat_bubble_outline_rounded, 'Foros'),
-      _BenefitItemData(Icons.article_outlined, 'Cuestionarios\ny actividades'),
-      _BenefitItemData(
-          Icons.notifications_none_rounded, 'Anuncios\nimportantes'),
-    ];
-
-    return Row(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          Expanded(child: _BenefitItem(data: items[i])),
-          if (i != items.length - 1)
-            Container(
-              height: 32,
-              width: 1,
-              color: ClassliftColors.PrimaryColor.withValues(alpha: 0.08),
-            ),
-        ],
-      ],
-    );
-  }
-}
-
-class _BenefitItem extends StatelessWidget {
-  final _BenefitItemData data;
-
-  const _BenefitItem({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(data.icon, color: ClassliftColors.PrimaryColor, size: 26),
-        const SizedBox(height: 6),
-        Text(
-          data.label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: ClassliftColors.PrimaryColor.withValues(alpha: 0.72),
-            fontSize: 10.5,
-            height: 1.18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BenefitItemData {
-  final IconData icon;
-  final String label;
-
-  const _BenefitItemData(this.icon, this.label);
-}
-
 class _ScheduleOverlap {
   final int startMinutes;
   final int endMinutes;
@@ -2817,6 +2874,58 @@ class _NextClassOccurrence {
     final parts = scheduledClass.startTime.split(':');
     return DateTime(date.year, date.month, date.day, int.parse(parts[0]),
         int.parse(parts[1]));
+  }
+}
+
+class _SubjectGlassCard extends StatelessWidget {
+  final Color color;
+  final Color accentColor;
+  final EdgeInsets padding;
+  final EdgeInsets margin;
+  final double radius;
+  final double borderWidth;
+  final Widget child;
+
+  const _SubjectGlassCard({
+    required this.color,
+    required this.accentColor,
+    required this.padding,
+    required this.child,
+    this.margin = EdgeInsets.zero,
+    this.radius = 14,
+    this.borderWidth = 6,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: margin,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+          child: Container(
+            width: double.infinity,
+            padding: padding,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              border: Border(
+                left: BorderSide(color: accentColor, width: borderWidth),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withValues(alpha: 0.70),
+                  color.withValues(alpha: 0.44),
+                ],
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
   }
 }
 

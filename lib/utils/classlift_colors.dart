@@ -6,6 +6,7 @@ class ClassliftColors {
   static const Color PrimaryColorVariant = Color(0xFF4E7AB5); // Azul claro
   static const Color AccentColor = Color(0xFFFF6F61); // Coral
   static const Color BackgroundColor = Color(0xFFF5F5F5); // Gris claro
+  static const Color homeBackground = Color(0xFFFCFCFD);
   static const Color TextColor = Color(0xFF333333); // Gris oscuro
   static const Color White = Color(0xFFFFFFFF); // Blanco
   static const Color Black = Color(0xFF000000); // Negro
@@ -98,6 +99,12 @@ class ClassliftColors {
   static const inputFocus = Color(0xFF4C9AFF);
   static const illustrationCheck = Color(0xFF5269D9);
   static const homeAction = Color(0xFF5668D9);
+  static const navigationAccent = Color(0xFF3860F5);
+  static const navigationAccentEnd = Color(0xFF3457EF);
+  static const navigationMuted = Color(0xFF6875A5);
+  static const navigationGlass = Color(0xFFEEF0FF);
+  static const navigationSelected = Color(0xFFF0F4FF);
+  static const navigationShadow = Color(0xFF6878B1);
   static const illustrationPrimary = Color(0xFF6176E5);
   static const inputMuted = Color(0xFF66788A);
   static const illustrationBinding = Color(0xFF687DE4);

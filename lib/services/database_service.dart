@@ -109,11 +109,23 @@ class DatabaseService {
 
   static Future<void> _onUpgrade(
       Database db, int oldVersion, int newVersion) async {
+    await _createAppSettingsTable(db);
+
     if (oldVersion < 2) {
       await _createSubjectEvaluationsTable(db);
       await db.execute(
           'CREATE INDEX idx_subject_evaluations_date ON $_subjectEvaluationsTable(evaluation_date)');
     }
+  }
+
+  static Future<void> _createAppSettingsTable(DatabaseExecutor db) {
+    return db.execute('''
+      CREATE TABLE IF NOT EXISTS $_appSettingsTable(
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
   }
 
   static Future<void> _createSubjectEvaluationsTable(DatabaseExecutor db) {
@@ -131,6 +143,35 @@ class DatabaseService {
         UNIQUE(subject_code, career_code, evaluation_type, evaluation_date, evaluation_time)
       )
     ''');
+  }
+
+  static Future<String?> getAppSetting(String key) async {
+    final db = await database;
+    await _createAppSettingsTable(db);
+    final rows = await db.query(
+      _appSettingsTable,
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+    return rows.first['value'] as String?;
+  }
+
+  static Future<void> setAppSetting(String key, String value) async {
+    final db = await database;
+    await _createAppSettingsTable(db);
+    await db.insert(
+      _appSettingsTable,
+      {
+        'key': key,
+        'value': value,
+        'updated_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // CRUD para Materias Seleccionadas
@@ -524,6 +565,7 @@ class DatabaseService {
       await txn.delete(_selectedSubjectsTable);
       await txn.delete(_subjectSchedulesTable);
       await txn.delete(_subjectGradesTable);
+      await txn.delete(_subjectEvaluationsTable);
       await txn.delete(_appSettingsTable);
     });
   }
