@@ -34,7 +34,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
       top: false,
       bottom: false,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(26, 0, 26, bottomSpacing),
+        padding: EdgeInsets.fromLTRB(22, 0, 22, bottomSpacing),
         child: Row(
           children: [
             Expanded(
@@ -160,7 +160,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                 dimension: 60,
                 child: ClipOval(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,

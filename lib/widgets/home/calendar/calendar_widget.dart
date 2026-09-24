@@ -116,7 +116,7 @@ class CalendarWidget extends StatelessWidget {
 
               // El Align evita que el builder del encabezado estire el fondo
               // a todo el ancho de la columna. Así coincide con la fecha.
-              return Align(
+              final header = Align(
                 alignment: Alignment.center,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 220),
@@ -144,6 +144,14 @@ class CalendarWidget extends StatelessWidget {
                     ),
                   ),
                 ),
+              );
+
+              if (calendarFormat != CalendarFormat.week) return header;
+
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onDaySelected(day, day),
+                child: header,
               );
             },
             defaultBuilder: (context, day, focusedDay) => _dayCell(day),
