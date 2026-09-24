@@ -16,17 +16,25 @@ class CalendarFooter extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          gradient: ClassliftColors.primaryGradient,
+        decoration: const BoxDecoration(
+          color: ClassliftColors.calendarSurface,
+          boxShadow: [
+            BoxShadow(
+                color: Color(0x0D5276B0), blurRadius: 14, offset: Offset(0, 6)),
+          ],
         ),
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Center(
-          child: Icon(
-            calendarFormat == CalendarFormat.week
-                ? Icons.expand_more
-                : Icons.expand_less,
-            color: ClassliftColors.White,
-            size: 25,
+          child: SizedBox(
+            width: 48,
+            height: 25,
+            child: Icon(
+              calendarFormat == CalendarFormat.week
+                  ? Icons.expand_more
+                  : Icons.expand_less,
+              color: ClassliftColors.calendarMuted,
+              size: 25,
+            ),
           ),
         ),
       ),

@@ -29,7 +29,7 @@ class CalendarWidget extends StatelessWidget {
     return Container(
       decoration: showBackground
           ? BoxDecoration(
-              gradient: ClassliftColors.primaryGradient,
+              gradient: ClassliftColors.calendarSurfaceGradient,
             )
           : null,
       child: SafeArea(
@@ -47,25 +47,25 @@ class CalendarWidget extends StatelessWidget {
           rowHeight: calendarFormat == CalendarFormat.week ? 38 : 42,
           calendarStyle: CalendarStyle(
             weekendTextStyle: const TextStyle(
-              color: ClassliftColors.White,
+              color: ClassliftColors.calendarInk,
               fontWeight: FontWeight.bold,
             ),
             defaultTextStyle: const TextStyle(
-              color: ClassliftColors.White,
+              color: ClassliftColors.calendarInk,
               fontWeight: FontWeight.bold,
             ),
             todayTextStyle: const TextStyle(
-              color: ClassliftColors.SecondaryColor,
+              color: ClassliftColors.calendarToday,
               fontWeight: FontWeight.bold,
             ),
             todayDecoration: const BoxDecoration(),
             selectedDecoration: const BoxDecoration(),
             selectedTextStyle: const TextStyle(
-              color: ClassliftColors.PrimaryColor,
+              color: ClassliftColors.calendarSelectionInk,
               fontWeight: FontWeight.bold,
             ),
             outsideTextStyle: const TextStyle(
-              color: ClassliftColors.white54,
+              color: ClassliftColors.calendarOutside,
             ),
           ),
           headerStyle: HeaderStyle(
@@ -77,18 +77,18 @@ class CalendarWidget extends StatelessWidget {
                   formattedDate.substring(1);
             },
             titleTextStyle: const TextStyle(
-              color: ClassliftColors.White,
+              color: ClassliftColors.calendarInk,
               fontSize: 18,
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.w600,
             ),
             leftChevronIcon: const Icon(
-              Icons.chevron_left,
-              color: ClassliftColors.White,
+              Icons.chevron_left_rounded,
+              color: ClassliftColors.calendarInk,
               size: 24,
             ),
             rightChevronIcon: const Icon(
-              Icons.chevron_right,
-              color: ClassliftColors.White,
+              Icons.chevron_right_rounded,
+              color: ClassliftColors.calendarInk,
               size: 24,
             ),
           ),
@@ -96,11 +96,11 @@ class CalendarWidget extends StatelessWidget {
             dowTextFormatter: (date, locale) =>
                 DateFormat.E(locale).format(date)[0].toUpperCase(),
             weekdayStyle: const TextStyle(
-              color: ClassliftColors.White,
+              color: ClassliftColors.calendarInk,
               fontWeight: FontWeight.bold,
             ),
             weekendStyle: const TextStyle(
-              color: ClassliftColors.White,
+              color: ClassliftColors.calendarInk,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -125,9 +125,16 @@ class CalendarWidget extends StatelessWidget {
                   height: 34,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? ClassliftColors.SecondaryColor
-                        : ClassliftColors.transparent,
+                    gradient: isSelected
+                        ? const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              ClassliftColors.calendarSelectionTop,
+                              ClassliftColors.calendarAccent
+                            ],
+                          )
+                        : null,
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(10),
                     ),
@@ -136,11 +143,11 @@ class CalendarWidget extends StatelessWidget {
                     dayText,
                     style: TextStyle(
                       color: isSelected
-                          ? ClassliftColors.PrimaryColor
+                          ? ClassliftColors.calendarSelectionInk
                           : isToday
-                              ? ClassliftColors.SecondaryColor
-                              : ClassliftColors.White,
-                      fontWeight: FontWeight.bold,
+                              ? ClassliftColors.calendarToday
+                              : ClassliftColors.calendarMuted,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -186,12 +193,12 @@ class CalendarWidget extends StatelessWidget {
         day.month != focusedDay.month || day.year != focusedDay.year;
 
     final textColor = isSelected
-        ? ClassliftColors.PrimaryColor
+        ? ClassliftColors.calendarSelectionInk
         : isOutsideMonth
-            ? ClassliftColors.white54
+            ? ClassliftColors.calendarOutside
             : isToday
-                ? ClassliftColors.SecondaryColor
-                : ClassliftColors.White;
+                ? ClassliftColors.calendarToday
+                : ClassliftColors.calendarInk;
 
     // En semana se desplaza suavemente hacia el encabezado para que ambas
     // mitades se perciban como una única selección continua.
@@ -206,9 +213,16 @@ class CalendarWidget extends StatelessWidget {
         height: 38,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected
-              ? ClassliftColors.SecondaryColor
-              : ClassliftColors.transparent,
+          gradient: isSelected
+              ? const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    ClassliftColors.calendarAccent,
+                    ClassliftColors.calendarSelectionBottom
+                  ],
+                )
+              : null,
           borderRadius: isWeekView
               ? const BorderRadius.vertical(bottom: Radius.circular(10))
               : BorderRadius.circular(10),
@@ -231,8 +245,8 @@ class CalendarWidget extends StatelessWidget {
               _classDots(
                 classCount,
                 isSelected
-                    ? ClassliftColors.PrimaryColor
-                    : ClassliftColors.SecondaryColor,
+                    ? ClassliftColors.calendarSelectionInk
+                    : ClassliftColors.calendarDots,
               ),
             ],
           ],

@@ -434,8 +434,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Column(
               children: [
                 DecoratedBox(
-                  decoration:
-                      BoxDecoration(gradient: ClassliftColors.primaryGradient),
+                  decoration: const BoxDecoration(
+                      gradient: ClassliftColors.calendarSurfaceGradient),
                   child: Column(children: [
                     FutureBuilder<MoodleTasksResult>(
                       future: hasMoodleSession ? tasks : null,

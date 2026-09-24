@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:classlift/utils/classlift_colors.dart';
 
 class HomeProfileHeader extends StatelessWidget {
@@ -69,7 +70,8 @@ class HomeProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = displayName?.trim() ?? '';
     final firstName = name.isEmpty ? '' : name.split(RegExp(r'\s+')).first;
-    return Container(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -86,7 +88,7 @@ class HomeProfileHeader extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: ClassliftColors.White,
+                        color: ClassliftColors.calendarInk,
                         fontSize: 22,
                         height: 1.2,
                         fontWeight: FontWeight.w700,
@@ -96,7 +98,7 @@ class HomeProfileHeader extends StatelessWidget {
                     Text(
                       subtitle,
                       style: const TextStyle(
-                        color: ClassliftColors.homeGreetingSubtitle,
+                        color: ClassliftColors.calendarMuted,
                         fontSize: 14,
                         height: 1.3,
                       ),
@@ -109,7 +111,7 @@ class HomeProfileHeader extends StatelessWidget {
                 tooltip: signingOut ? 'Cerrando sesión' : 'Mi perfil',
                 onPressed: signingOut ? null : () => _openProfile(context),
                 style: IconButton.styleFrom(
-                  foregroundColor: ClassliftColors.White,
+                  foregroundColor: ClassliftColors.calendarInk,
                   minimumSize: const Size(48, 48),
                 ),
                 icon: signingOut
@@ -117,7 +119,7 @@ class HomeProfileHeader extends StatelessWidget {
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: ClassliftColors.White))
+                            strokeWidth: 2, color: ClassliftColors.calendarInk))
                     : const Icon(Icons.account_circle_outlined, size: 32),
               ),
             ],

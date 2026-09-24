@@ -1,6 +1,25 @@
 import 'package:flutter/material.dart';
 
 class ClassliftColors {
+  // Shared Classlift blue surface for the home header and calendar.
+  static const calendarSurface = Color(0xFF3B55A5);
+  static const calendarInk = Color(0xFFFFFFFF);
+  static const calendarMuted = Color(0xFFD7E3FF);
+  static const calendarOutside = Color(0xFFADBFE8);
+  static const calendarAccent = Color(0xFFDCE8FF);
+  static const calendarToday = Color(0xFFBDDDFF);
+  static const calendarDots = Color(0xFFB5D1FF);
+  static const calendarSelectionTop = Color(0xFFE8F0FF);
+  static const calendarSelectionBottom = Color(0xFFD2E1FF);
+  static const calendarSelectionInk = Color(0xFF273776);
+  static const calendarHandle = Color(0xFF506AB5);
+  static const calendarSurfaceGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [PrimaryColor, Color(0xFF354998), calendarSurface],
+    stops: [0, 0.55, 1],
+  );
+
   static const Color PrimaryColor = Color(0xFF333D86); // Azul oscuro
   static const Color SecondaryColor = Color(0xFFA3C1E2); // Azul claro
   static const Color PrimaryColorVariant = Color(0xFF4E7AB5); // Azul claro
