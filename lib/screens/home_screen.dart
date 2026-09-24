@@ -48,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _signingOut = false;
   bool _dismissedScheduleRecommendation = false;
   bool _dismissedEducaRecommendation = false;
+  bool _restoringMoodleSession = true;
 
   Future<void> _signOut() async {
     if (_signingOut) return;
@@ -69,12 +70,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _refreshMoodleTasks() {
-    MoodleTasksService.loadCurrentSession();
+  Future<void> _refreshMoodleTasks() async {
+    final load = MoodleTasksService.loadCurrentSession();
+    if (load != null) await load;
   }
 
   Future<void> _connectMoodle() async {
     await context.push('/login/moodle');
+    if (mounted) setState(() {});
   }
 
   bool _isLoadingClasses = true;
@@ -86,10 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.initState();
     _selectedDay = DateTime.now();
     Intl.defaultLocale = 'es_ES';
-    if (MoodleAuthService.instance.session != null &&
-        MoodleTasksService.lastLoad == null) {
-      MoodleTasksService.loadCurrentSession();
-    }
+    _restoreMoodleSession();
 
     // Añadir observer para detectar cuando la app regrese del background
     WidgetsBinding.instance.addObserver(this);
@@ -98,6 +98,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _loadClassesForSelectedDay();
       _loadRecommendationPreferences();
     });
+  }
+
+  Future<void> _restoreMoodleSession() async {
+    final session = await MoodleAuthService.instance.restoreSession();
+    if (!mounted) return;
+    if (session != null && MoodleTasksService.lastLoad == null) {
+      MoodleTasksService.loadCurrentSession();
+    }
+    setState(() => _restoringMoodleSession = false);
   }
 
   @override
@@ -399,8 +408,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final cachedTasks = hasMoodleSession ? MoodleTasksService.lastResult : null;
     final showScheduleRecommendation =
         !_dismissedScheduleRecommendation && showNewUserState;
-    final showEducaRecommendation =
-        !_dismissedEducaRecommendation && !hasMoodleSession;
+    final showEducaRecommendation = !_restoringMoodleSession &&
+        !_dismissedEducaRecommendation &&
+        !hasMoodleSession;
 
     return Scaffold(
       extendBody: true,
@@ -554,6 +564,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     PendingTasksSection(
                                       future: tasks,
                                       onRefresh: _refreshMoodleTasks,
+                                      onReconnect: _connectMoodle,
                                     ),
                                 ] else ...[
                                   _isWeeklySummary
@@ -568,6 +579,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     PendingTasksSection(
                                       future: tasks,
                                       onRefresh: _refreshMoodleTasks,
+                                      onReconnect: _connectMoodle,
                                     )
                                   else if (showEducaRecommendation)
                                     _buildMoodleConnectSection(),

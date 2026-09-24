@@ -43,9 +43,24 @@ class MoodleTasksService {
     final session = auth.session;
     if (session == null) {
       throw const MoodleAuthException(
-          'Iniciá sesión con Moodle para ver tus tareas.');
+        'Iniciá sesión con Moodle para ver tus tareas.',
+        requiresReconnect: true,
+      );
     }
-    final response = await auth.call('mod_assign_get_assignments');
+    late final Map<String, dynamic> response;
+    try {
+      response = await auth.call('mod_assign_get_assignments');
+    } on MoodleAuthException catch (error) {
+      if (error.requiresReconnect) {
+        if (identical(auth, MoodleAuthService.instance)) {
+          await auth.forgetPersistedSession();
+        } else {
+          auth.signOut();
+        }
+        clearCache();
+      }
+      rethrow;
+    }
     if (response['courses'] is! List) {
       throw const MoodleAuthException('No se pudo leer la lista de tareas.');
     }

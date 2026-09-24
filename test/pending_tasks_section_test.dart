@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:classlift/models/moodle_task.dart';
+import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 import 'package:classlift/widgets/home/pending_tasks_section.dart';
 
@@ -145,14 +146,26 @@ void main() {
 
   testWidgets('shows errors separately from no pending tasks', (tester) async {
     final completer = Completer<MoodleTasksResult>();
+    final retryCompleter = Completer<void>();
+    var retries = 0;
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: PendingTasksSection(
-                future: completer.future, onRefresh: () {}))));
+                future: completer.future,
+                onRefresh: () {
+                  retries++;
+                  return retryCompleter.future;
+                }))));
     completer.completeError(Exception('offline'));
     await tester.pumpAndSettle();
     expect(find.text('No se pudieron actualizar tus tareas.'), findsOneWidget);
     expect(find.textContaining('Estás al día'), findsNothing);
+    await tester.tap(find.text('Reintentar'));
+    await tester.pump();
+    expect(retries, 1);
+    expect(find.text('Actualizando'), findsOneWidget);
+    retryCompleter.complete();
+    await tester.pumpAndSettle();
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(
             body: PendingTasksSection(
@@ -160,6 +173,27 @@ void main() {
                 onRefresh: () {}))));
     await tester.pumpAndSettle();
     expect(find.textContaining('Estás al día'), findsOneWidget);
+  });
+
+  testWidgets('session errors ask to reconnect EDUCA', (tester) async {
+    final completer = Completer<MoodleTasksResult>();
+    var reconnects = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: PendingTasksSection(
+                future: completer.future,
+                onRefresh: () {},
+                onReconnect: () => reconnects++))));
+    completer.completeError(const MoodleAuthException(
+      'Tu sesión de EDUCA venció.',
+      requiresReconnect: true,
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Tu sesión de EDUCA venció.'), findsOneWidget);
+    expect(find.text('Reconectar EDUCA'), findsOneWidget);
+    await tester.tap(find.text('Reconectar EDUCA'));
+    await tester.pumpAndSettle();
+    expect(reconnects, 1);
   });
 
   testWidgets('reference preview and swipe navigation', (tester) async {

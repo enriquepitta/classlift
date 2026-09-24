@@ -130,4 +130,22 @@ void main() {
     await expectLater(MoodleTasksService(auth: auth).load(),
         throwsA(isA<MoodleAuthException>()));
   });
+
+  test('clears in-memory session when Moodle rejects the token', () async {
+    final auth = MoodleAuthService(
+        client: MockClient((_) async => http.Response(
+            jsonEncode({
+              'exception': 'moodle_exception',
+              'errorcode': 'invalidtoken',
+            }),
+            200)))
+      ..session = session;
+
+    await expectLater(
+      MoodleTasksService(auth: auth).load(),
+      throwsA(isA<MoodleAuthException>().having(
+          (error) => error.requiresReconnect, 'requiresReconnect', true)),
+    );
+    expect(auth.session, isNull);
+  });
 }

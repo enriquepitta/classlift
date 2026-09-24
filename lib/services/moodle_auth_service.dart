@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:classlift/services/database_service.dart';
+
 class MoodleConfig {
   static const siteUrl = String.fromEnvironment(
     'MOODLE_URL',
@@ -25,33 +27,65 @@ class MoodleSession {
     required this.userId,
     required this.fullName,
   });
+
+  Map<String, Object?> toJson() => {
+        'siteUrl': siteUrl,
+        'token': token,
+        'userId': userId,
+        'fullName': fullName,
+      };
+
+  factory MoodleSession.fromJson(Map<String, dynamic> json) {
+    final siteUrl = json['siteUrl'];
+    final token = json['token'];
+    final userId = json['userId'];
+    final fullName = json['fullName'];
+    if (siteUrl is! String ||
+        token is! String ||
+        userId is! int ||
+        fullName is! String ||
+        siteUrl.isEmpty ||
+        token.isEmpty) {
+      throw const FormatException('Invalid Moodle session');
+    }
+    return MoodleSession(
+      siteUrl: siteUrl,
+      token: token,
+      userId: userId,
+      fullName: fullName,
+    );
+  }
 }
 
 class MoodleAuthException implements Exception {
   final String message;
-  const MoodleAuthException(this.message);
+  final bool requiresReconnect;
+  const MoodleAuthException(this.message, {this.requiresReconnect = false});
 }
 
 class MoodleAuthService {
   static final instance = MoodleAuthService();
+  static const _storedSessionKey = 'moodle_session';
   final http.Client _client;
   final String siteUrl;
 
-  // Tokens stay in memory and are never written to logs or plain-text storage.
   MoodleSession? session;
 
   MoodleAuthService({http.Client? client, this.siteUrl = MoodleConfig.siteUrl})
       : _client = client ?? http.Client();
 
-  Future<Map<String, dynamic>> _post(
-      String path, Map<String, String> fields) async {
-    final base = Uri.parse(siteUrl);
+  Future<Map<String, dynamic>> _post(String path, Map<String, String> fields,
+      {String? baseUrl}) async {
+    final effectiveSiteUrl = baseUrl ?? siteUrl;
+    final base = Uri.parse(effectiveSiteUrl);
     if (base.scheme != 'https' || base.host.isEmpty) {
       throw const MoodleAuthException('El servidor Moodle debe usar HTTPS.');
     }
     try {
       final response = await _client
-          .post(Uri.parse('${siteUrl.replaceFirst(RegExp(r'/+$'), '')}$path'),
+          .post(
+              Uri.parse(
+                  '${effectiveSiteUrl.replaceFirst(RegExp(r'/+$'), '')}$path'),
               body: fields)
           .timeout(const Duration(seconds: 20));
       if (response.statusCode != 200) {
@@ -64,13 +98,20 @@ class MoodleAuthService {
       }
       if (data.containsKey('error') || data.containsKey('exception')) {
         final code = data['errorcode'];
+        final requiresReconnect = code == 'invalidtoken' ||
+            code == 'accessexception' ||
+            code == 'webservice_access_exception' ||
+            code == 'servicenotavailable';
         throw MoodleAuthException(
           code == 'invalidlogin'
               ? 'Usuario o contraseña incorrectos.'
-              : code == 'username_required' || code == 'password_required'
-                  ? 'Ingresá tu usuario y contraseña de Moodle.'
-                  : 'Moodle rechazó el acceso. Verificá que tu cuenta tenga '
-                      'habilitado el servicio móvil o consultá al administrador.',
+              : requiresReconnect
+                  ? 'Tu sesión de EDUCA venció. Volvé a conectar tu cuenta.'
+                  : code == 'username_required' || code == 'password_required'
+                      ? 'Ingresá tu usuario y contraseña de Moodle.'
+                      : 'Moodle rechazó el acceso. Verificá que tu cuenta tenga '
+                          'habilitado el servicio móvil o consultá al administrador.',
+          requiresReconnect: requiresReconnect,
         );
       }
       return data;
@@ -119,19 +160,52 @@ class MoodleAuthService {
     final current = session;
     if (current == null) {
       throw const MoodleAuthException(
-          'Iniciá sesión con Moodle para ver tus tareas.');
+        'Iniciá sesión con Moodle para ver tus tareas.',
+        requiresReconnect: true,
+      );
     }
-    final result = await _post('/webservice/rest/server.php', {
-      ...parameters,
-      'wstoken': current.token,
-      'wsfunction': function,
-      'moodlewsrestformat': 'json',
-    });
+    final result = await _post(
+      '/webservice/rest/server.php',
+      {
+        ...parameters,
+        'wstoken': current.token,
+        'wsfunction': function,
+        'moodlewsrestformat': 'json',
+      },
+      baseUrl: current.siteUrl,
+    );
     if (!identical(current, session)) {
       throw const MoodleAuthException(
-          'La sesión de Moodle cambió. Actualizá las tareas.');
+        'La sesión de Moodle cambió. Volvé a conectar EDUCA.',
+        requiresReconnect: true,
+      );
     }
     return result;
+  }
+
+  Future<void> persistSession(MoodleSession value) async {
+    session = value;
+    await DatabaseService.setAppSetting(
+        _storedSessionKey, jsonEncode(value.toJson()));
+  }
+
+  Future<MoodleSession?> restoreSession() async {
+    final raw = await DatabaseService.getAppSetting(_storedSessionKey);
+    if (raw == null) return session;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) throw const FormatException();
+      return session = MoodleSession.fromJson(decoded);
+    } catch (_) {
+      await DatabaseService.deleteAppSetting(_storedSessionKey);
+      session = null;
+      return null;
+    }
+  }
+
+  Future<void> forgetPersistedSession() async {
+    session = null;
+    await DatabaseService.deleteAppSetting(_storedSessionKey);
   }
 
   void signOut() => session = null;

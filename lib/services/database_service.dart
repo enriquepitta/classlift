@@ -174,6 +174,16 @@ class DatabaseService {
     );
   }
 
+  static Future<void> deleteAppSetting(String key) async {
+    final db = await database;
+    await _createAppSettingsTable(db);
+    await db.delete(
+      _appSettingsTable,
+      where: 'key = ?',
+      whereArgs: [key],
+    );
+  }
+
   // CRUD para Materias Seleccionadas
   static Future<int> insertSelectedSubject(SelectedSubject subject) async {
     final db = await database;

@@ -152,7 +152,7 @@ class _MoodleLoginScreenState extends State<MoodleLoginScreen> {
     try {
       final service = MoodleAuthService(siteUrl: _selectedSiteUrl);
       final session = await service.signIn(_username.text, _password.text);
-      MoodleAuthService.instance.session = session;
+      await MoodleAuthService.instance.persistSession(session);
       await MoodleTasksService.loadCurrentSession();
       if (!mounted) return;
       _password.clear();

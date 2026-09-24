@@ -7,15 +7,21 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:classlift/models/moodle_task.dart';
+import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 
 const _ink = ClassliftColors.taskText;
 
 class PendingTasksSection extends StatefulWidget {
   final Future<MoodleTasksResult>? future;
-  final VoidCallback onRefresh;
-  const PendingTasksSection(
-      {super.key, required this.future, required this.onRefresh});
+  final FutureOr<void> Function() onRefresh;
+  final FutureOr<void> Function()? onReconnect;
+  const PendingTasksSection({
+    super.key,
+    required this.future,
+    required this.onRefresh,
+    this.onReconnect,
+  });
 
   @override
   State<PendingTasksSection> createState() => _PendingTasksSectionState();
@@ -24,7 +30,8 @@ class PendingTasksSection extends StatefulWidget {
 class _PendingTasksSectionState extends State<PendingTasksSection> {
   Timer? _timer;
   Future<MoodleTasksResult>? get future => widget.future;
-  VoidCallback get onRefresh => widget.onRefresh;
+  FutureOr<void> Function() get onRefresh => widget.onRefresh;
+  FutureOr<void> Function()? get onReconnect => widget.onReconnect;
 
   @override
   void initState() {
@@ -132,10 +139,11 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                     height: 180,
                     child: Center(child: CircularProgressIndicator()))
               else if (snapshot.hasError)
-                _Notice(
-                    message: 'No se pudieron actualizar tus tareas.',
-                    action: 'Reintentar',
-                    onTap: onRefresh)
+                _TaskErrorNotice(
+                  error: snapshot.error,
+                  onRetry: onRefresh,
+                  onReconnect: onReconnect,
+                )
               else ...[
                 if (upcoming.isEmpty)
                   _Notice(
@@ -145,7 +153,7 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                               ? 'No hay tareas disponibles para mostrar.'
                               : 'Estás al día. No tenés tareas pendientes.',
                       action: 'Actualizar',
-                      onTap: onRefresh)
+                      onTap: () => onRefresh())
                 else
                   _TaskCarousel(
                     key: ValueKey(
@@ -156,6 +164,156 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _TaskErrorNotice extends StatefulWidget {
+  final Object? error;
+  final FutureOr<void> Function() onRetry;
+  final FutureOr<void> Function()? onReconnect;
+  const _TaskErrorNotice({
+    required this.error,
+    required this.onRetry,
+    required this.onReconnect,
+  });
+
+  @override
+  State<_TaskErrorNotice> createState() => _TaskErrorNoticeState();
+}
+
+class _TaskErrorNoticeState extends State<_TaskErrorNotice> {
+  bool _retrying = false;
+
+  bool get _requiresReconnect =>
+      widget.error is MoodleAuthException &&
+      (widget.error as MoodleAuthException).requiresReconnect;
+
+  Future<void> _retry() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    try {
+      if (_requiresReconnect && widget.onReconnect != null) {
+        await widget.onReconnect!();
+      } else {
+        await widget.onRetry();
+      }
+    } catch (_) {
+      // El FutureBuilder vuelve a mostrar el estado de error si Moodle falla.
+    } finally {
+      if (mounted) setState(() => _retrying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = _requiresReconnect
+        ? 'Tu sesión de EDUCA venció.'
+        : 'No se pudieron actualizar tus tareas.';
+    final description = _requiresReconnect
+        ? 'Volvé a conectar tu cuenta para traer tus entregas pendientes.'
+        : 'Revisá tu conexión o intentá sincronizar EDUCA otra vez.';
+    final idleLabel = _requiresReconnect ? 'Reconectar EDUCA' : 'Reintentar';
+    final loadingLabel = _requiresReconnect ? 'Abriendo' : 'Actualizando';
+    final idleIcon =
+        _requiresReconnect ? Icons.login_rounded : Icons.refresh_rounded;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ClassliftColors.educaSoftBackground.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: ClassliftColors.educaRed.withValues(alpha: 0.16),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ClassliftColors.educaRed.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: ClassliftColors.White.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.sync_problem_rounded,
+              color: ClassliftColors.educaRed,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: ClassliftColors.educaDarkRed,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: ClassliftColors.educaMuted,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: _retrying ? null : _retry,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: ClassliftColors.educaRed,
+                      disabledBackgroundColor:
+                          ClassliftColors.educaRed.withValues(alpha: 0.58),
+                      foregroundColor: ClassliftColors.White,
+                      disabledForegroundColor: ClassliftColors.White,
+                      minimumSize: const Size(0, 34),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    icon: _retrying
+                        ? const SizedBox.square(
+                            dimension: 15,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: ClassliftColors.White,
+                            ),
+                          )
+                        : Icon(idleIcon, size: 17),
+                    label: Text(
+                      _retrying ? loadingLabel : idleLabel,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
