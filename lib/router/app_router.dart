@@ -14,7 +14,7 @@ final GoRouter appRouter = GoRouter(initialLocation: '/', routes: [
   ),
   GoRoute(
     path: '/',
-    pageBuilder: (context, state) => buildFadeTransition(
+    pageBuilder: (context, state) => NoTransitionPage(
       key: state.pageKey,
       child: const SplashScreen(),
     ),

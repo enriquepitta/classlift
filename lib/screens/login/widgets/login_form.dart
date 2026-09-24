@@ -1,6 +1,4 @@
-import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/router/app_routes.dart';
-import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/textfield_label.dart';
 import 'package:go_router/go_router.dart';
@@ -24,18 +22,22 @@ class LoginForm extends StatelessWidget {
         key: const ValueKey('login_form'),
         children: [
           // Campo de correo electrónico
-          TextfieldLabel().buildLabelAndTextField(
+          const TextfieldLabel().buildLabelAndTextField(
+            glassStyle: true,
             label: 'Correo electrónico',
             controller: controller.emailController,
             icon: Icons.email,
             obscureText: false,
-            obscureTextNotifier: ValueNotifier(false),
+            obscureTextNotifier: controller.passwordObscureNotifier,
             keyboardType: TextInputType.emailAddress,
             focusNode: controller.emailFocusNode,
             nextFocusNode: controller.passwordFocusNode,
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Por favor ingresa un correo electrónico';
-              if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$").hasMatch(value)) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa un correo electrónico';
+              }
+              if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$")
+                  .hasMatch(value)) {
                 return 'Por favor ingresa un correo válido';
               }
               return null;
@@ -43,10 +45,11 @@ class LoginForm extends StatelessWidget {
           ),
 
           // Espaciado entre campos usando ResponsiveUtils
-          SizedBox(height: ResponsiveUtils.spacing(context, 'dm')),
+          SizedBox(height: spacing),
 
           // Campo de contraseña - ahora usando buildLabelAndTextField
-          TextfieldLabel().buildLabelAndTextField(
+          const TextfieldLabel().buildLabelAndTextField(
+            glassStyle: true,
             label: 'Contraseña',
             controller: controller.passwordController,
             icon: Icons.lock,
@@ -55,10 +58,14 @@ class LoginForm extends StatelessWidget {
             hintText: 'Ingresá tu contraseña',
             focusNode: controller.passwordFocusNode,
             validator: (value) {
-              if (value == null || value.isEmpty) return 'Por favor ingresa una contraseña';
+              if (value == null || value.isEmpty) {
+                return 'Por favor ingresa una contraseña';
+              }
               return null;
             },
           ),
+
+          const SizedBox(height: 4),
 
           // Enlace de contraseña olvidada
           Align(
@@ -67,11 +74,11 @@ class LoginForm extends StatelessWidget {
               onPressed: () {
                 context.push(AppRoutes.forgotPassword);
               },
-              child: Text(
+              child: const Text(
                 '¿Olvidaste tu contraseña?',
                 style: TextStyle(
-                  color: ClassliftColors.PrimaryColor,
-                  fontSize: ResponsiveUtils.fontStyle(context, 'button'),
+                  color: Color(0xFF1555DC),
+                  fontSize: 13,
                 ),
               ),
             ),
