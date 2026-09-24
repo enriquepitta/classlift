@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Keep the book and arrow inside the adaptive icon safe area. -->
+    <group android:translateX="13.04" android:translateY="11.52"
+        android:scaleX="0.64" android:scaleY="0.64">
+        <path android:fillColor="#F0FFFFFF"
+            android:pathData="M26,48 C37,47 47,50 58,57 L58,96 C47,88 38,84 26,84 Z" />
+        <path android:fillColor="#E5F1FF"
+            android:pathData="M70,57 C81,50 91,47 102,48 L102,84 C90,84 81,88 70,96 Z" />
+        <path android:fillColor="@android:color/transparent"
+            android:strokeColor="#FFFFFF" android:strokeWidth="7"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M64,66 L64,28 M51,41 L64,28 L77,41" />
+        <path android:fillColor="@android:color/transparent"
+            android:strokeColor="#8CBCDFFF" android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M34,97 C45,98 54,101 64,107 C74,101 83,98 94,97" />
+    </group>
+</vector>

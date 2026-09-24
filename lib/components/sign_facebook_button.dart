@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -14,10 +15,10 @@ class SignInWithFacebookButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor:  Color(0xFFE3F0F9), // Fondo azul de Facebook
+          backgroundColor:  ClassliftColors.socialButtonBackground, // Fondo azul de Facebook
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10), // Bordes ligeramente redondeados
-            side: BorderSide(color: Color(0xFF91B0FE), width: 1.5), // Borde azul de Facebook
+            borderRadius: BorderRadius.circular(12), // Bordes ligeramente redondeados
+            side: BorderSide(color: ClassliftColors.socialButtonBorder, width: 1.5), // Borde azul de Facebook
           ),
           padding: EdgeInsets.zero, // Sin relleno
         ),

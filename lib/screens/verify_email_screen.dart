@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:classlift/components/background_gradient.dart';
@@ -81,7 +82,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15.0),
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: const Icon(Icons.arrow_back, color: ClassliftColors.White),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () {
@@ -102,13 +103,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: ClassliftColors.White,
                               ),
                             ),
                             const SizedBox(height: 20),
                             Text(
                               'Hemos enviado un código al correo ${widget.email}',
-                              style: const TextStyle(color: Colors.white),
+                              style: const TextStyle(color: ClassliftColors.White),
                             ),
                             const SizedBox(height: 20),
                             Row(
@@ -129,7 +130,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                   boxShadow: _isOtpComplete()
                                       ? [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: ClassliftColors.Black.withOpacity(0.2),
                                       offset: const Offset(0, 4),
                                       blurRadius: 10,
                                       spreadRadius: 2,
@@ -148,9 +149,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                   style: ElevatedButton.styleFrom(
                                     minimumSize: const Size(double.infinity, 50),
                                     backgroundColor: _isOtpComplete()
-                                        ? const Color(0xFF4E7AB5)
-                                        : const Color(0xFFA3C1E2),
-                                    foregroundColor: Colors.white,
+                                        ? ClassliftColors.PrimaryColorVariant
+                                        : ClassliftColors.SecondaryColor,
+                                    foregroundColor: ClassliftColors.White,
                                     textStyle: const TextStyle(fontSize: 16.0),
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
@@ -188,8 +189,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                           text: _isResendEnabled ? "Reenviar código" : "Reenviar en ",
                           style: TextStyle(
                             color: _isResendEnabled
-                                ? const Color(0xFF333D86)
-                                : const Color(0xFF979797),
+                                ? ClassliftColors.PrimaryColor
+                                : ClassliftColors.verificationMuted,
                             fontSize: 16,
                           ),
                           children: _isResendEnabled
@@ -198,7 +199,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                             TextSpan(
                               text: "$_timeRemaining",
                               style: const TextStyle(
-                                color: Colors.black, // Color negro para los segundos
+                                color: ClassliftColors.Black, // Color negro para los segundos
                               ),
                             ),
                             const TextSpan(text: " segundos"),
@@ -240,19 +241,19 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         style: const TextStyle(
           fontSize: 26, // Aumenta el tamaño del texto
           fontWeight: FontWeight.bold,
-          color: Colors.black,
+          color: ClassliftColors.Black,
         ),
         decoration: InputDecoration(
           filled: true,
-          fillColor: const Color(0xFFF0F0F0), // Fondo claro
+          fillColor: ClassliftColors.semesterColorEven, // Fondo claro
           counterText: '',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.transparent),
+            borderSide: const BorderSide(color: ClassliftColors.transparent),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF4C9AFF), width: 2),
+            borderSide: const BorderSide(color: ClassliftColors.inputFocus, width: 2),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -260,7 +261,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 2),
+            borderSide: const BorderSide(color: ClassliftColors.red, width: 2),
           ),
           disabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -270,7 +271,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
           hintText: '',
           hintStyle: const TextStyle(
             fontSize: 20,
-            color: Color(0xFF979797),
+            color: ClassliftColors.verificationMuted,
           ),
         ),
       ),
