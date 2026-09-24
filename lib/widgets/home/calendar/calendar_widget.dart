@@ -200,58 +200,57 @@ class CalendarWidget extends StatelessWidget {
                 ? ClassliftColors.calendarToday
                 : ClassliftColors.calendarInk;
 
-    // En semana se desplaza suavemente hacia el encabezado para que ambas
-    // mitades se perciban como una única selección continua.
-    return AnimatedSlide(
+    final cell = AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
-      offset: Offset(0, isSelected && isWeekView ? -0.24 : 0),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        width: 38,
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    ClassliftColors.calendarAccent,
-                    ClassliftColors.calendarSelectionBottom
-                  ],
-                )
-              : null,
-          borderRadius: isWeekView
-              ? const BorderRadius.vertical(bottom: Radius.circular(10))
-              : BorderRadius.circular(10),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${day.day}',
-              style: TextStyle(
-                color: textColor,
-                fontWeight:
-                    isOutsideMonth ? FontWeight.normal : FontWeight.bold,
-              ),
-            ),
-            // Se dibujan aquí (y no con eventLoader), por lo que incluso la
-            // fecha seleccionada conserva sus puntos sin duplicarlos.
-            if (classCount > 0) ...[
-              const SizedBox(height: 2),
-              _classDots(
-                classCount,
-                isSelected
-                    ? ClassliftColors.calendarSelectionInk
-                    : ClassliftColors.calendarDots,
-              ),
-            ],
-          ],
-        ),
+      width: 38,
+      height: 38,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: isSelected
+            ? const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  ClassliftColors.calendarAccent,
+                  ClassliftColors.calendarSelectionBottom
+                ],
+              )
+            : null,
+        borderRadius: isWeekView
+            ? const BorderRadius.vertical(bottom: Radius.circular(10))
+            : BorderRadius.circular(10),
       ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${day.day}',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: isOutsideMonth ? FontWeight.normal : FontWeight.bold,
+            ),
+          ),
+          // Se dibujan aquí (y no con eventLoader), por lo que incluso la
+          // fecha seleccionada conserva sus puntos sin duplicarlos.
+          if (classCount > 0) ...[
+            const SizedBox(height: 2),
+            _classDots(
+              classCount,
+              isSelected
+                  ? ClassliftColors.calendarSelectionInk
+                  : ClassliftColors.calendarDots,
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (!isWeekView) return cell;
+
+    return Transform.translate(
+      offset: const Offset(0, -3),
+      child: cell,
     );
   }
 
