@@ -11,6 +11,7 @@ void main() {
           body: HomeProfileHeader(
         displayName: 'Ana Pérez',
         email: 'ana@example.com',
+        photoUrl: 'https://example.com/ana.png',
         subtitle: 'Tenés 3 clases por delante.',
         signingOut: false,
         onSignOut: () async {
@@ -20,10 +21,12 @@ void main() {
     ));
     expect(find.text('¡Hola, Ana!'), findsOneWidget);
     expect(find.text('Tenés 3 clases por delante.'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
     await tester.tap(find.byTooltip('Mi perfil'));
     await tester.pumpAndSettle();
     expect(find.text('Ana Pérez'), findsOneWidget);
     expect(find.text('ana@example.com'), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(2));
     expect(signOutCalls, 0);
     await tester.tap(find.text('Cerrar sesión'));
     await tester.pumpAndSettle();

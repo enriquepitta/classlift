@@ -7,6 +7,7 @@ class HomeProfileHeader extends StatelessWidget {
     super.key,
     this.displayName,
     this.email,
+    this.photoUrl,
     required this.subtitle,
     required this.signingOut,
     required this.onSignOut,
@@ -14,9 +15,37 @@ class HomeProfileHeader extends StatelessWidget {
 
   final String? displayName;
   final String? email;
+  final String? photoUrl;
   final String subtitle;
   final bool signingOut;
   final Future<void> Function() onSignOut;
+
+  bool get _hasPhoto => photoUrl?.trim().isNotEmpty == true;
+
+  Widget _profileAvatar({required double radius}) {
+    final fallback = CircleAvatar(
+      radius: radius,
+      backgroundColor: ClassliftColors.calendarInk.withValues(alpha: 0.08),
+      child: Icon(
+        Icons.account_circle_outlined,
+        size: radius * 1.45,
+        color: ClassliftColors.calendarInk,
+      ),
+    );
+
+    if (!_hasPhoto) return fallback;
+
+    final diameter = radius * 2;
+    return ClipOval(
+      child: Image.network(
+        photoUrl!.trim(),
+        width: diameter,
+        height: diameter,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
+    );
+  }
 
   Future<void> _openProfile(BuildContext context) async {
     final signOut = await showModalBottomSheet<bool>(
@@ -31,7 +60,10 @@ class HomeProfileHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Center(child: _profileAvatar(radius: 34)),
+              const SizedBox(height: 16),
               const Text('Mi cuenta',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -42,10 +74,12 @@ class HomeProfileHeader extends StatelessWidget {
                   displayName?.trim().isNotEmpty == true
                       ? displayName!.trim()
                       : 'Tu cuenta de ClassLift',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.w600)),
               if (email?.isNotEmpty == true) ...[
                 const SizedBox(height: 4),
                 Text(email!,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(color: ClassliftColors.black54)),
               ],
               const SizedBox(height: 20),
@@ -120,7 +154,7 @@ class HomeProfileHeader extends StatelessWidget {
                         height: 22,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: ClassliftColors.calendarInk))
-                    : const Icon(Icons.account_circle_outlined, size: 32),
+                    : _profileAvatar(radius: 18),
               ),
             ],
           ),

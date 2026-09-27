@@ -455,6 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             FirebaseAuth.instance.currentUser?.displayName ??
                                 MoodleAuthService.instance.session?.fullName,
                         email: FirebaseAuth.instance.currentUser?.email,
+                        photoUrl: FirebaseAuth.instance.currentUser?.photoURL,
                         subtitle: _homeSubtitle(snapshot.data),
                         signingOut: _signingOut,
                         onSignOut: _signOut,
