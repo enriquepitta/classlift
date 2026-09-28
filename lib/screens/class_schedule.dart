@@ -4,6 +4,7 @@ import 'package:classlift/models/career.dart';
 import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/utils/subject_label.dart';
 import 'package:classlift/widgets/selection/selection_flow_widgets.dart';
+import 'package:classlift/widgets/selection/subject_options_group.dart';
 import 'package:go_router/go_router.dart';
 import 'package:classlift/router/app_routes.dart';
 
@@ -302,6 +303,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                         final subjects =
                             List<String>.from(careerEntry.value[semester]!)
                               ..sort();
+                        final subjectGroups = groupSubjectOptions(subjects);
                         final allSelected = isSemesterFullySelected(
                             careerCode, semester, subjects);
                         final selectedInSemester = subjects
@@ -324,8 +326,8 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                             child: _SelectionExpansion(
                               title: 'Semestre $semester',
                               subtitle: selectedInSemester == 0
-                                  ? '${subjects.length} materia${subjects.length == 1 ? '' : 's'}'
-                                  : '$selectedInSemester de ${subjects.length} seleccionadas',
+                                  ? '${subjectGroups.length} materia${subjectGroups.length == 1 ? '' : 's'} · ${subjects.length} ${subjects.length == 1 ? 'opción' : 'opciones'}'
+                                  : '$selectedInSemester de ${subjects.length} opciones seleccionadas',
                               leading: Container(
                                 width: 34,
                                 height: 34,
@@ -384,16 +386,19 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                                     ),
                                   ),
                                 ),
-                                ...subjects.map((subject) => Padding(
-                                      padding:
-                                          const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                                      child: SubjectCheckboxTile(
+                                ...subjectGroups.entries.map((group) => Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          8, 0, 8, 12),
+                                      child: SubjectOptionsGroup(
                                         key: ValueKey(
-                                            '$careerCode/$semester/$subject'),
-                                        title: subject,
-                                        isSelected: isSubjectSelected(
-                                            careerCode, subject),
-                                        onTap: () =>
+                                            '$careerCode/$semester/${group.key}'),
+                                        subjectName: group.key,
+                                        options: group.value,
+                                        selectedSubjects:
+                                            selectedSubjectsByCareer[
+                                                    careerCode] ??
+                                                {},
+                                        onToggle: (subject) =>
                                             toggleSubject(careerCode, subject),
                                       ),
                                     )),
@@ -684,44 +689,6 @@ class _SelectionExpansion extends StatelessWidget {
             color: ClassliftColors.selectionMuted, size: 22),
       ),
       children: children,
-    );
-  }
-}
-
-class SubjectCheckboxTile extends StatelessWidget {
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const SubjectCheckboxTile({
-    super.key,
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      checked: isSelected,
-      child: SelectionSurface(
-        selected: isSelected,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: _SubjectDetails(label: title)),
-                const SizedBox(width: 12),
-                SelectionIndicator(selected: isSelected),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
