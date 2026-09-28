@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarWidget extends StatelessWidget {
+  static const _selectionAnimationDuration = Duration(milliseconds: 260);
+  static const _selectionAnimationCurve = Curves.easeOutCubic;
+
   final DateTime focusedDay;
   final DateTime? selectedDay;
   final CalendarFormat calendarFormat;
@@ -106,49 +109,92 @@ class CalendarWidget extends StatelessWidget {
           ),
           calendarBuilders: CalendarBuilders(
             dowBuilder: (context, day) {
-              final String dayText =
+              final dayText =
                   DateFormat.E('es_ES').format(day)[0].toUpperCase();
-              final bool isToday = isSameDay(day, DateTime.now());
-              // El encabezado forma parte de la selección únicamente en la
-              // vista semanal. En la vista expandida solo se resalta la fecha.
-              final isSelected = calendarFormat == CalendarFormat.week &&
-                  isSameDay(selectedDay, day);
+              final isToday = isSameDay(day, DateTime.now());
+              final isSelectedDay = isSameDay(selectedDay, day);
+              final highlightTodayHeader =
+                  calendarFormat == CalendarFormat.week &&
+                      isToday &&
+                      !isSelectedDay;
+              final isSelected =
+                  calendarFormat == CalendarFormat.week && isSelectedDay;
 
-              // El Align evita que el builder del encabezado estire el fondo
-              // a todo el ancho de la columna. Así coincide con la fecha.
               final header = Align(
                 alignment: Alignment.center,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
+                child: SizedBox(
                   width: 38,
                   height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: isSelected
-                        ? const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              ClassliftColors.calendarSelectionTop,
-                              ClassliftColors.calendarAccent
-                            ],
-                          )
-                        : null,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(10),
-                    ),
-                  ),
-                  child: Text(
-                    dayText,
-                    style: TextStyle(
-                      color: isSelected
-                          ? ClassliftColors.calendarSelectionInk
-                          : isToday
-                              ? ClassliftColors.calendarToday
-                              : ClassliftColors.calendarMuted,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      AnimatedOpacity(
+                        duration: _selectionAnimationDuration,
+                        curve: _selectionAnimationCurve,
+                        opacity: highlightTodayHeader ? 1 : 0,
+                        child: AnimatedContainer(
+                          duration: _selectionAnimationDuration,
+                          curve: _selectionAnimationCurve,
+                          width: 38,
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            color: ClassliftColors.calendarTodaySurface,
+                            border: Border(
+                              top: BorderSide(
+                                color: ClassliftColors.calendarTodayAccent,
+                                width: 1.3,
+                              ),
+                              left: BorderSide(
+                                color: ClassliftColors.calendarTodayAccent,
+                                width: 1.3,
+                              ),
+                              right: BorderSide(
+                                color: ClassliftColors.calendarTodayAccent,
+                                width: 1.3,
+                              ),
+                            ),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      AnimatedOpacity(
+                        duration: _selectionAnimationDuration,
+                        curve: _selectionAnimationCurve,
+                        opacity: isSelected ? 1 : 0,
+                        child: Container(
+                          width: 38,
+                          height: 34,
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                ClassliftColors.calendarSelectionTop,
+                                ClassliftColors.calendarAccent
+                              ],
+                            ),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      AnimatedDefaultTextStyle(
+                        duration: _selectionAnimationDuration,
+                        curve: _selectionAnimationCurve,
+                        style: TextStyle(
+                          color: isSelected
+                              ? ClassliftColors.calendarSelectionInk
+                              : highlightTodayHeader
+                                  ? ClassliftColors.calendarInk
+                                  : ClassliftColors.calendarMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        child: Text(dayText),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -189,6 +235,7 @@ class CalendarWidget extends StatelessWidget {
     final isSelected = isSameDay(selectedDay, day);
     final isWeekView = calendarFormat == CalendarFormat.week;
     final isToday = isSameDay(day, DateTime.now());
+    final highlightToday = isToday && !isSelected;
     final isOutsideMonth =
         day.month != focusedDay.month || day.year != focusedDay.year;
 
@@ -196,60 +243,108 @@ class CalendarWidget extends StatelessWidget {
         ? ClassliftColors.calendarSelectionInk
         : isOutsideMonth
             ? ClassliftColors.calendarOutside
-            : isToday
-                ? ClassliftColors.calendarToday
+            : highlightToday
+                ? ClassliftColors.calendarTodayAccent
                 : ClassliftColors.calendarInk;
 
-    final cell = AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
+    final cellBorderRadius = isWeekView
+        ? const BorderRadius.vertical(bottom: Radius.circular(10))
+        : BorderRadius.circular(10);
+    final cellContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedDefaultTextStyle(
+          duration: _selectionAnimationDuration,
+          curve: _selectionAnimationCurve,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: isOutsideMonth ? FontWeight.normal : FontWeight.bold,
+          ),
+          child: Text('${day.day}'),
+        ),
+        if (classCount > 0) ...[
+          const SizedBox(height: 2),
+          _classDots(
+            classCount,
+            isSelected
+                ? ClassliftColors.calendarSelectionInk
+                : ClassliftColors.calendarDots,
+          ),
+        ],
+      ],
+    );
+
+    final cell = SizedBox(
       width: 38,
       height: 38,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: isSelected
-            ? const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  ClassliftColors.calendarAccent,
-                  ClassliftColors.calendarSelectionBottom
-                ],
-              )
-            : null,
-        borderRadius: isWeekView
-            ? const BorderRadius.vertical(bottom: Radius.circular(10))
-            : BorderRadius.circular(10),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Text(
-            '${day.day}',
-            style: TextStyle(
-              color: textColor,
-              fontWeight: isOutsideMonth ? FontWeight.normal : FontWeight.bold,
+          AnimatedOpacity(
+            duration: _selectionAnimationDuration,
+            curve: _selectionAnimationCurve,
+            opacity: highlightToday ? 1 : 0,
+            child: AnimatedContainer(
+              duration: _selectionAnimationDuration,
+              curve: _selectionAnimationCurve,
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: ClassliftColors.calendarTodaySurface,
+                border: isWeekView
+                    ? const Border(
+                        left: BorderSide(
+                          color: ClassliftColors.calendarTodayAccent,
+                          width: 1.3,
+                        ),
+                        right: BorderSide(
+                          color: ClassliftColors.calendarTodayAccent,
+                          width: 1.3,
+                        ),
+                        bottom: BorderSide(
+                          color: ClassliftColors.calendarTodayAccent,
+                          width: 1.3,
+                        ),
+                      )
+                    : Border.all(
+                        color: ClassliftColors.calendarTodayAccent,
+                        width: 1.3,
+                      ),
+                borderRadius: cellBorderRadius,
+              ),
             ),
           ),
-          // Se dibujan aquí (y no con eventLoader), por lo que incluso la
-          // fecha seleccionada conserva sus puntos sin duplicarlos.
-          if (classCount > 0) ...[
-            const SizedBox(height: 2),
-            _classDots(
-              classCount,
-              isSelected
-                  ? ClassliftColors.calendarSelectionInk
-                  : ClassliftColors.calendarDots,
+          AnimatedOpacity(
+            duration: _selectionAnimationDuration,
+            curve: _selectionAnimationCurve,
+            opacity: isSelected ? 1 : 0,
+            child: AnimatedContainer(
+              duration: _selectionAnimationDuration,
+              curve: _selectionAnimationCurve,
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    ClassliftColors.calendarAccent,
+                    ClassliftColors.calendarSelectionBottom
+                  ],
+                ),
+                borderRadius: cellBorderRadius,
+              ),
             ),
-          ],
+          ),
+          cellContent,
         ],
       ),
     );
 
-    if (!isWeekView) return cell;
-
-    return Transform.translate(
-      offset: const Offset(0, -3),
+    return AnimatedSlide(
+      duration: _selectionAnimationDuration,
+      curve: _selectionAnimationCurve,
+      offset: isWeekView ? const Offset(0, -0.08) : Offset.zero,
       child: cell,
     );
   }

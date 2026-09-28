@@ -8,6 +8,8 @@ class ClassliftColors {
   static const calendarOutside = Color(0xFFADBFE8);
   static const calendarAccent = Color(0xFFDCE8FF);
   static const calendarToday = Color(0xFFBDDDFF);
+  static const calendarTodayAccent = Color(0xFFA3C1E2);
+  static const calendarTodaySurface = Color(0x2EA3C1E2);
   static const calendarDots = Color(0xFFB5D1FF);
   static const calendarSelectionTop = Color(0xFFE8F0FF);
   static const calendarSelectionBottom = Color(0xFFD2E1FF);
