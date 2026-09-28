@@ -76,6 +76,33 @@ void main() {
         isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Footer toggles calendar format from outside the arrow',
+      (tester) async {
+    final key = GlobalKey<CalendarHarnessState>();
+    await tester.pumpWidget(MaterialApp(home: CalendarHarness(key: key)));
+    await tester.pumpAndSettle();
+    final footerBox =
+        tester.renderObject<RenderBox>(find.byType(CalendarFooter));
+    final footerTopLeft = footerBox.localToGlobal(Offset.zero);
+    await tester.tapAt(footerTopLeft + const Offset(24, 12));
+    await tester.pumpAndSettle();
+    expect(key.currentState!.format, CalendarFormat.month);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Today shortcut selects and focuses the current day',
+      (tester) async {
+    final key = GlobalKey<CalendarHarnessState>();
+    await tester.pumpWidget(MaterialApp(home: CalendarHarness(key: key)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hoy'));
+    await tester.pumpAndSettle();
+    final today = DateUtils.dateOnly(DateTime.now());
+    expect(isSameDay(key.currentState!.selected, today), isTrue);
+    expect(isSameDay(key.currentState!.focused, today), isTrue);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class CalendarHarness extends StatefulWidget {
@@ -113,6 +140,13 @@ class CalendarHarnessState extends State<CalendarHarness> {
       ),
       CalendarFooter(
           calendarFormat: format,
+          showTodayButton: !isSameDay(selected, DateTime.now()) ||
+              !isSameDay(focused, DateTime.now()),
+          onTodayTap: () => setState(() {
+                final today = DateUtils.dateOnly(DateTime.now());
+                selected = today;
+                focused = today;
+              }),
           onTap: () => setState(() {
                 format = format == CalendarFormat.week
                     ? CalendarFormat.month

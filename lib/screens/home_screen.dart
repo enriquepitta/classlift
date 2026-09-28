@@ -302,6 +302,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _loadClassesForSelectedDay();
   }
 
+  bool get _showTodayShortcut {
+    final today = DateUtils.dateOnly(DateTime.now());
+    return !isSameDay(_selectedDay, today) || !isSameDay(_focusedDay, today);
+  }
+
+  void _goToToday() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final referenceDay = _selectedDay ?? _focusedDay;
+
+    setState(() {
+      _dayTransitionDirection = today.isBefore(referenceDay) ? -1 : 1;
+      _selectedDay = today;
+      _focusedDay = today;
+      _isWeeklySummary = false;
+    });
+    _loadClassesForSelectedDay();
+  }
+
   String get _contentKey {
     if (_isWeeklySummary) {
       final weekStart = _weekStartFor(_focusedDay);
@@ -491,6 +509,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 // Footer del calendario
                 CalendarFooter(
                   calendarFormat: _calendarFormat,
+                  showTodayButton: _showTodayShortcut,
+                  onTodayTap: _goToToday,
                   onTap: () => setState(() {
                     _calendarFormat = _calendarFormat == CalendarFormat.week
                         ? CalendarFormat.month
