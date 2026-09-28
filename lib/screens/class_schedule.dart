@@ -2,7 +2,8 @@ import 'package:classlift/services/database_service.dart';
 import 'package:flutter/material.dart';
 import 'package:classlift/models/career.dart';
 import 'package:classlift/utils/classlift_colors.dart';
-import 'package:lottie/lottie.dart';
+import 'package:classlift/utils/subject_label.dart';
+import 'package:classlift/widgets/selection/selection_flow_widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:classlift/router/app_routes.dart';
 
@@ -19,7 +20,7 @@ class SelectSemesterScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _SelectSemesterScreenState createState() => _SelectSemesterScreenState();
+  State<SelectSemesterScreen> createState() => _SelectSemesterScreenState();
 }
 
 class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
@@ -97,11 +98,21 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
       builder: (_) => const PopScope(
         canPop: false,
         child: AlertDialog(
+          backgroundColor: ClassliftColors.selectionSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(24)),
+          ),
           content: Row(
             children: [
-              CircularProgressIndicator(),
+              CircularProgressIndicator(color: ClassliftColors.selectionBlue),
               SizedBox(width: 20),
-              Text('Guardando materias...'),
+              Expanded(
+                child: Text('Guardando materias...',
+                    style: TextStyle(
+                      color: ClassliftColors.selectionInk,
+                      fontSize: 14,
+                    )),
+              ),
             ],
           ),
         ),
@@ -250,102 +261,147 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> sections = [];
-    int careerIndex = 0;
+    final total = getTotalSelectedSubjects();
 
-    for (var careerEntry in widget.careerSemesters.entries) {
-      final careerCode = careerEntry.key;
-      final careerName = widget.careers
-          .firstWhere(
-            (c) => c.code == careerCode,
-            orElse: () => Career(careerCode, careerCode),
-          )
-          .description;
+    return SelectionFlowScaffold(
+      title: 'Seleccioná',
+      accentTitle: 'tus materias',
+      description:
+          'Elegí las materias que vas a cursar\ny armá tu horario a tu medida.',
+      step: 2,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate(
+              widget.careerSemesters.entries.map((careerEntry) {
+                final careerCode = careerEntry.key;
+                final careerName = widget.careers
+                    .firstWhere(
+                      (career) => career.code == careerCode,
+                      orElse: () => Career(careerCode, careerCode),
+                    )
+                    .description;
+                final semesters = careerEntry.value.keys.toList()..sort();
+                final selectedCount =
+                    selectedSubjectsByCareer[careerCode]?.length ?? 0;
 
-      final semestersMap = careerEntry.value;
-      final sortedSemesters = semestersMap.keys.toList()..sort();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: SelectionSurface(
+                    child: _SelectionExpansion(
+                      title: careerName,
+                      subtitle: selectedCount == 0
+                          ? '${semesters.length} semestre${semesters.length == 1 ? ' disponible' : 's disponibles'}'
+                          : '$selectedCount materia${selectedCount == 1 ? '' : 's'} seleccionada${selectedCount == 1 ? '' : 's'}',
+                      leading: const SelectionIcon(),
+                      expanded: expandedCareers[careerCode] ?? false,
+                      onExpansionChanged: (expanded) => setState(
+                          () => expandedCareers[careerCode] = expanded),
+                      children: semesters.map((semester) {
+                        final subjects =
+                            List<String>.from(careerEntry.value[semester]!)
+                              ..sort();
+                        final allSelected = isSemesterFullySelected(
+                            careerCode, semester, subjects);
+                        final selectedInSemester = subjects
+                            .where((subject) =>
+                                isSubjectSelected(careerCode, subject))
+                            .length;
 
-      final careerBgColor = careerIndex++ % 2 == 0
-          ? ClassliftColors.careerColorEven
-          : ClassliftColors.careerColorOdd;
-
-      int semesterIndex = 0;
-
-      sections.add(
-        Material(
-          color: careerBgColor,
-          child: Theme(
-            data: Theme.of(context)
-                .copyWith(dividerColor: ClassliftColors.transparent),
-            child: ExpansionTile(
-              title: Text(
-                careerName,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              initiallyExpanded: expandedCareers[careerCode] ?? false,
-              onExpansionChanged: (expanded) =>
-                  setState(() => expandedCareers[careerCode] = expanded),
-              trailing: AnimatedRotation(
-                turns: (expandedCareers[careerCode] ?? false) ? 0.5 : 0.0,
-                duration: const Duration(milliseconds: 300),
-                child: const Icon(Icons.expand_more),
-              ),
-              children: sortedSemesters.map((semester) {
-                final subjects = List<String>.from(semestersMap[semester]!);
-                subjects.sort();
-                final allSelected =
-                    isSemesterFullySelected(careerCode, semester, subjects);
-                final semesterBgColor = semesterIndex++ % 2 == 0
-                    ? ClassliftColors.semesterColorEven
-                    : ClassliftColors.semesterColorOdd;
-
-                return Material(
-                  color: semesterBgColor,
-                  child: Theme(
-                    data: Theme.of(context)
-                        .copyWith(dividerColor: ClassliftColors.transparent),
-                    child: ExpansionTile(
-                      title: Text("Semestre $semester"),
-                      initiallyExpanded:
-                          expandedSemesters[careerCode]?[semester] ?? false,
-                      onExpansionChanged: (expanded) => setState(() =>
-                          expandedSemesters[careerCode]![semester] = expanded),
-                      trailing: AnimatedRotation(
-                        turns:
-                            (expandedSemesters[careerCode]?[semester] ?? false)
-                                ? 0.5
-                                : 0.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: const Icon(Icons.expand_more),
-                      ),
-                      children: [
-                        SubjectCheckboxTile(
-                          title: 'Seleccionar todo el semestre',
-                          isSelected: allSelected,
-                          onTap: () =>
-                              toggleSemester(careerCode, semester, subjects),
-                          index: -1,
-                          backgroundColor: ClassliftColors.selectAllColor,
-                        ),
-                        ...subjects.asMap().entries.map((entry) {
-                          final subject = entry.value;
-                          final index = entry.key;
-                          final selected =
-                              isSubjectSelected(careerCode, subject);
-                          final bgColor = index % 2 == 0
-                              ? ClassliftColors.subjectColorEven
-                              : ClassliftColors.subjectColorOdd;
-
-                          return SubjectCheckboxTile(
-                            title: subject,
-                            isSelected: selected,
-                            onTap: () => toggleSubject(careerCode, subject),
-                            index: index,
-                            backgroundColor: bgColor,
-                          );
-                        }).toList(),
-                      ],
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: ClassliftColors.selectionSurface
+                                  .withValues(alpha: .8),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                  color: ClassliftColors.selectionBorder
+                                      .withValues(alpha: .45)),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: _SelectionExpansion(
+                              title: 'Semestre $semester',
+                              subtitle: selectedInSemester == 0
+                                  ? '${subjects.length} materia${subjects.length == 1 ? '' : 's'}'
+                                  : '$selectedInSemester de ${subjects.length} seleccionadas',
+                              leading: Container(
+                                width: 34,
+                                height: 34,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: ClassliftColors.selectionIcon,
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: Text('$semester',
+                                    style: const TextStyle(
+                                        color:
+                                            ClassliftColors.PrimaryColorVariant,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                              expanded: expandedSemesters[careerCode]
+                                      ?[semester] ??
+                                  false,
+                              onExpansionChanged: (expanded) => setState(() =>
+                                  expandedSemesters[careerCode]![semester] =
+                                      expanded),
+                              children: [
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                  child: Semantics(
+                                    checked: allSelected,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: () => toggleSemester(
+                                          careerCode, semester, subjects),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 14),
+                                        child: Row(
+                                          children: [
+                                            const Expanded(
+                                              child: Text(
+                                                'Seleccionar todo el semestre',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: ClassliftColors
+                                                      .PrimaryColorVariant,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            SelectionIndicator(
+                                              selected: allSelected,
+                                              partial: selectedInSemester > 0 &&
+                                                  !allSelected,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                ...subjects.map((subject) => Padding(
+                                      padding:
+                                          const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                      child: SubjectCheckboxTile(
+                                        key: ValueKey(
+                                            '$careerCode/$semester/$subject'),
+                                        title: subject,
+                                        isSelected: isSubjectSelected(
+                                            careerCode, subject),
+                                        onTap: () =>
+                                            toggleSubject(careerCode, subject),
+                                      ),
+                                    )),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 );
@@ -353,77 +409,12 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
             ),
           ),
         ),
-      );
-    }
-
-    final isButtonEnabled =
-        selectedSubjectsByCareer.values.any((set) => set.isNotEmpty);
-
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0),
-        child: AppBar(
-          title: const Text(
-            "Seleccioná materias",
-            style: TextStyle(
-              color: ClassliftColors.SecondaryColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          backgroundColor: ClassliftColors.PrimaryColor,
-          iconTheme: const IconThemeData(
-            color: ClassliftColors.SecondaryColor,
-          ),
-        ),
-      ),
-      body: Container(
-        color: ClassliftColors.BackgroundColor,
-        child: Column(
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-              child: Align(
-                alignment: Alignment.center,
-                child: Text(
-                  'Seleccionaste ${getTotalSelectedSubjects()} materia${getTotalSelectedSubjects() != 1 ? 's' : ''}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: ClassliftColors.Black,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 2.0, vertical: 0.0),
-                children: sections,
-              ),
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
-              child: ElevatedButton(
-                onPressed: isButtonEnabled ? _showSummaryBottomSheet : null,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                  backgroundColor: isButtonEnabled
-                      ? ClassliftColors.PrimaryColor
-                      : ClassliftColors.SecondaryColor,
-                  foregroundColor: ClassliftColors.White,
-                  textStyle: const TextStyle(fontSize: 16.0),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-                child: const Text('Continuar'),
-              ),
-            ),
-          ],
-        ),
+      ],
+      footer: SelectionFooter(
+        caption: total == 0
+            ? 'Elegí al menos una materia para continuar'
+            : '$total materia${total == 1 ? '' : 's'} seleccionada${total == 1 ? '' : 's'}',
+        onPressed: total > 0 ? _showSummaryBottomSheet : null,
       ),
     );
   }
@@ -482,837 +473,377 @@ class SubjectSummaryBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groupedSubjects = _groupSubjectsBySemester();
+    final total = getTotalSelectedSubjects();
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: ClassliftColors.White,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) {
-          return Column(
-            children: [
-              // Handle del bottom sheet
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: ClassliftColors.grey300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Resumen de materias',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: ClassliftColors.PrimaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Total: ${getTotalSelectedSubjects()} materia${getTotalSelectedSubjects() != 1 ? 's' : ''} seleccionada${getTotalSelectedSubjects() != 1 ? 's' : ''}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: ClassliftColors.grey,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Lista de materias agrupadas por carrera y semestre
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  itemCount: groupedSubjects.entries.length,
-                  itemBuilder: (context, careerIndex) {
-                    final careerEntry =
-                        groupedSubjects.entries.elementAt(careerIndex);
-                    final careerCode = careerEntry.key;
-                    final semesterMap = careerEntry.value;
-
-                    if (semesterMap.isEmpty) return const SizedBox.shrink();
-
-                    final careerName = careers
-                        .firstWhere(
-                          (c) => c.code == careerCode,
-                          orElse: () => Career(careerCode, careerCode),
-                        )
-                        .description;
-
-                    final totalSubjectsInCareer = semesterMap.values
-                        .fold(0, (sum, list) => sum + list.length);
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: ClassliftColors.listBackground,
-                        borderRadius: BorderRadius.circular(16),
-                        border:
-                            Border.all(color: ClassliftColors.scheduleBorder),
-                        boxShadow: [
-                          BoxShadow(
-                            color: ClassliftColors.Black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header de la carrera
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  ClassliftColors.PrimaryColor,
-                                  ClassliftColors.PrimaryColor.withOpacity(0.8),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(16),
-                                topRight: Radius.circular(16),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.school,
-                                  color: ClassliftColors.White,
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    careerName,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: ClassliftColors.White,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        ClassliftColors.White.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    '$totalSubjectsInCareer materia${totalSubjectsInCareer != 1 ? 's' : ''}',
-                                    style: const TextStyle(
-                                      color: ClassliftColors.White,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Semestres y materias
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children:
-                                  semesterMap.entries.map((semesterEntry) {
-                                final semester = semesterEntry.key;
-                                final subjects = semesterEntry.value;
-                                final isLastSemester =
-                                    semesterEntry == semesterMap.entries.last;
-
-                                return Container(
-                                  margin: EdgeInsets.only(
-                                      bottom: isLastSemester ? 0 : 16),
-                                  decoration: BoxDecoration(
-                                    color: ClassliftColors.White,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: ClassliftColors.scheduleBorder),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Header del semestre
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 12),
-                                        decoration: BoxDecoration(
-                                          color: ClassliftColors.listBackground,
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(12),
-                                            topRight: Radius.circular(12),
-                                          ),
-                                          border: Border(
-                                            bottom: BorderSide(
-                                                color: ClassliftColors
-                                                    .scheduleBorder),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    ClassliftColors.PrimaryColor
-                                                        .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Icon(
-                                                Icons.calendar_month,
-                                                color: ClassliftColors
-                                                    .PrimaryColor,
-                                                size: 18,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                'Semestre $semester',
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w600,
-                                                  color:
-                                                      ClassliftColors.black87,
-                                                ),
-                                              ),
-                                            ),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    ClassliftColors.PrimaryColor
-                                                        .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Text(
-                                                '${subjects.length}',
-                                                style: TextStyle(
-                                                  color: ClassliftColors
-                                                      .PrimaryColor,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Lista de materias con detalles
-                                      Padding(
-                                        padding: const EdgeInsets.all(16),
-                                        child: Column(
-                                          children: subjects
-                                              .asMap()
-                                              .entries
-                                              .map((subjectEntry) {
-                                            final subjectIndex =
-                                                subjectEntry.key;
-                                            final subject = subjectEntry.value;
-                                            final isLastSubject =
-                                                subjectIndex ==
-                                                    subjects.length - 1;
-
-                                            // Parse subject details
-                                            String cleanSubject = subject;
-                                            String? shift;
-                                            String? section;
-                                            String? professor;
-                                            String? schedule;
-
-                                            if (subject.contains(' — ')) {
-                                              final parts =
-                                                  subject.split(' — ');
-                                              if (parts.length >= 2) {
-                                                cleanSubject = parts[0];
-                                                shift = parts[1];
-                                                if (parts.length >= 3) {
-                                                  section = parts[2];
-                                                }
-                                                if (parts.length >= 4) {
-                                                  professor = parts[3];
-                                                }
-
-                                                if (parts.length >= 5) {
-                                                  schedule = parts[
-                                                      4]; // Obtener el horario codificado
-                                                }
-                                              }
-                                            }
-
-                                            return Container(
-                                              margin: EdgeInsets.only(
-                                                  bottom:
-                                                      isLastSubject ? 0 : 12),
-                                              padding: const EdgeInsets.all(16),
-                                              decoration: BoxDecoration(
-                                                color: ClassliftColors
-                                                    .scheduleSurface,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                    color: ClassliftColors
-                                                        .scheduleBorder
-                                                        .withOpacity(0.5)),
-                                              ),
-                                              // Dentro del Container donde muestras los detalles de la materia
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  // Nombre de la materia (código existente)
-                                                  Row(
-                                                    children: [
-                                                      Container(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(4),
-                                                        decoration:
-                                                            const BoxDecoration(
-                                                          color: ClassliftColors
-                                                              .green,
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                        child: const Icon(
-                                                          Icons.check,
-                                                          color: ClassliftColors
-                                                              .White,
-                                                          size: 12,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 12),
-                                                      Expanded(
-                                                        child: Text(
-                                                          cleanSubject,
-                                                          style:
-                                                              const TextStyle(
-                                                            fontSize: 14,
-                                                            color:
-                                                                ClassliftColors
-                                                                    .black87,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-
-                                                  // Detalles adicionales (código existente)
-                                                  if (shift != null ||
-                                                      section != null ||
-                                                      professor != null ||
-                                                      schedule != null) ...[
-                                                    const SizedBox(height: 10),
-                                                    Wrap(
-                                                      spacing: 8,
-                                                      runSpacing: 6,
-                                                      children: [
-                                                        // ... código existente para shift y section ...
-                                                      ],
-                                                    ),
-
-                                                    // Profesor (código existente)
-                                                    if (professor != null) ...[
-                                                      const SizedBox(height: 8),
-                                                      Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .person_outline,
-                                                            size: 14,
-                                                            color: Colors
-                                                                .grey[600],
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 6),
-                                                          Expanded(
-                                                            child: Text(
-                                                              professor,
-                                                              style: TextStyle(
-                                                                fontSize: 12,
-                                                                color: Colors
-                                                                    .grey[600],
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
-                                                                fontStyle:
-                                                                    FontStyle
-                                                                        .italic,
-                                                              ),
-                                                              overflow:
-                                                                  TextOverflow
-                                                                      .ellipsis,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-
-                                                    // NUEVO: Horario de clases
-                                                    _buildScheduleWidget(
-                                                        schedule),
-                                                  ],
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Botón de guardar
-              Container(
-                padding: const EdgeInsets.all(20.0),
-                decoration: BoxDecoration(
-                  color: ClassliftColors.White,
-                  border: Border(
-                    top: BorderSide(color: ClassliftColors.grey200),
-                  ),
-                ),
-                child: SafeArea(
-                  child: ElevatedButton(
-                    onPressed: onSave,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                      backgroundColor: ClassliftColors.PrimaryColor,
-                      foregroundColor: ClassliftColors.White,
-                      textStyle: const TextStyle(
-                          fontSize: 16.0, fontWeight: FontWeight.w600),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    child: const Text('Guardar y Ver Horario'),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class SubjectCheckboxTile extends StatefulWidget {
-  final String title;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final int index;
-  final Color backgroundColor;
-
-  const SubjectCheckboxTile({
-    required this.title,
-    required this.isSelected,
-    required this.onTap,
-    required this.index,
-    required this.backgroundColor,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  State<SubjectCheckboxTile> createState() => _SubjectCheckboxTileState();
-}
-
-class _SubjectCheckboxTileState extends State<SubjectCheckboxTile>
-    with TickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    if (widget.isSelected) {
-      _controller.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant SubjectCheckboxTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isSelected != widget.isSelected) {
-      if (widget.isSelected) {
-        _controller.forward();
-      } else {
-        _controller.animateBack(0.0,
-            duration: const Duration(milliseconds: 500));
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Separar título, turno, sección y profesor
-    String cleanTitle = widget.title;
-    String? shift;
-    String? section;
-    String? professor;
-
-    if (widget.title.contains(' — ')) {
-      final parts = widget.title.split(' — ');
-      if (parts.length >= 2) {
-        cleanTitle = parts[0];
-        shift = parts[1];
-        if (parts.length >= 3) {
-          section = parts[2];
-        }
-        if (parts.length >= 4) {
-          professor = parts[3];
-        }
-      }
-    }
-
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        color: widget.index % 2 == 0
-            ? ClassliftColors.White
-            : ClassliftColors.BackgroundColor,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    cleanTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: ClassliftColors.Black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (shift != null ||
-                      section != null ||
-                      professor != null) ...[
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        // Turno
-                        if (shift != null)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: _getShiftColor(shift),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                shift,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: ClassliftColors.grey600,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        // Sección
-                        if (section != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color:
-                                  _getSectionColor(section).withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              section,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: _getSectionColor(section),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        // Profesor
-                        if (professor != null)
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 12,
-                                color: ClassliftColors.grey500,
-                              ),
-                              const SizedBox(width: 3),
-                              Flexible(
-                                child: Text(
-                                  professor,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: ClassliftColors.grey600,
-                                    fontWeight: FontWeight.w400,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ],
+    return DraggableScrollableSheet(
+      initialChildSize: .7,
+      minChildSize: .5,
+      maxChildSize: .9,
+      expand: false,
+      builder: (context, scrollController) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: [
+                  ClassliftColors.selectionIcon,
+                  ClassliftColors.selectionSurface,
+                  ClassliftColors.White,
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: Lottie.asset(
-                'assets/lottie/checkbox_lottie.json',
-                controller: _controller,
-                onLoaded: (composition) =>
-                    _controller.duration = composition.duration,
-              ),
+            child: Column(
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12, bottom: 4),
+                    decoration: BoxDecoration(
+                      color: ClassliftColors.selectionBorder,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(22, 12, 22, 16),
+                    children: [
+                      Row(
+                        children: [
+                          const SelectionIcon(icon: Icons.checklist_rounded),
+                          const Spacer(),
+                          IconButton(
+                            tooltip: 'Volver a la selección',
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close_rounded,
+                                color: ClassliftColors.selectionMuted),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Tu horario,\na un paso',
+                        style: TextStyle(
+                          fontSize: 28,
+                          height: 1.2,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -.6,
+                          color: ClassliftColors.selectionInk,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        total == 1
+                            ? 'Revisá la materia seleccionada antes de guardar.'
+                            : 'Revisá tus $total materias antes de guardar.',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            color: ClassliftColors.selectionMuted),
+                      ),
+                      const SizedBox(height: 24),
+                      ...groupedSubjects.entries.map((careerEntry) {
+                        final careerName = careers
+                            .firstWhere(
+                              (career) => career.code == careerEntry.key,
+                              orElse: () =>
+                                  Career(careerEntry.key, careerEntry.key),
+                            )
+                            .description;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: SelectionSurface(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const SelectionIcon(),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(careerName,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  ClassliftColors.selectionInk,
+                                            )),
+                                      ),
+                                    ],
+                                  ),
+                                  ...careerEntry.value.entries.map((semester) =>
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: 18, bottom: 12),
+                                            child: SelectionBadge(
+                                              label:
+                                                  'Semestre ${semester.key} · ${semester.value.length} materia${semester.value.length == 1 ? '' : 's'}',
+                                              icon: Icons.layers_outlined,
+                                            ),
+                                          ),
+                                          ...semester.value.map((subject) =>
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 12),
+                                                child: Container(
+                                                  width: double.infinity,
+                                                  padding:
+                                                      const EdgeInsets.all(14),
+                                                  decoration: BoxDecoration(
+                                                    color: ClassliftColors
+                                                        .selectionSurface,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            16),
+                                                  ),
+                                                  child: _SubjectDetails(
+                                                    label: subject,
+                                                    showSchedule: true,
+                                                  ),
+                                                ),
+                                              )),
+                                        ],
+                                      )),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                SelectionFooter(
+                  label: 'Guardar y ver horario',
+                  onPressed: onSave,
+                ),
+              ],
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SelectionExpansion extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget leading;
+  final bool expanded;
+  final ValueChanged<bool> onExpansionChanged;
+  final List<Widget> children;
+
+  const _SelectionExpansion({
+    required this.title,
+    required this.subtitle,
+    required this.leading,
+    required this.expanded,
+    required this.onExpansionChanged,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ExpansionTile(
+      initiallyExpanded: expanded,
+      onExpansionChanged: onExpansionChanged,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      childrenPadding: EdgeInsets.zero,
+      shape: const Border(),
+      collapsedShape: const Border(),
+      leading: leading,
+      title: Text(title,
+          style: const TextStyle(
+            fontSize: 14,
+            height: 1.4,
+            fontWeight: FontWeight.w600,
+            color: ClassliftColors.selectionInk,
+          )),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(subtitle,
+            style: const TextStyle(
+                fontSize: 11, color: ClassliftColors.selectionMuted)),
+      ),
+      trailing: AnimatedRotation(
+        turns: expanded ? .5 : 0,
+        duration: selectionAnimationDuration,
+        curve: Curves.easeOutCubic,
+        child: const Icon(Icons.keyboard_arrow_down_rounded,
+            color: ClassliftColors.selectionMuted, size: 22),
+      ),
+      children: children,
+    );
+  }
+}
+
+class SubjectCheckboxTile extends StatelessWidget {
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const SubjectCheckboxTile({
+    super.key,
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      checked: isSelected,
+      child: SelectionSurface(
+        selected: isSelected,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _SubjectDetails(label: title)),
+                const SizedBox(width: 12),
+                SelectionIndicator(selected: isSelected),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-// Agregar estas funciones en la clase SubjectSummaryBottomSheet
-Color _getShiftColor(String? shift) {
-  if (shift == null) return ClassliftColors.grey;
-  switch (shift.toLowerCase()) {
-    case 'mañana':
-      return ClassliftColors.green; // Verde
-    case 'tarde':
-      return ClassliftColors.orange; // Naranja
-    case 'noche':
-      return ClassliftColors.indigo; // Azul oscuro
-    default:
-      return ClassliftColors.grey600; // Gris
+/// Display-only parsing: the original complete label is still selected/saved.
+class _SubjectDetails extends StatelessWidget {
+  final String label;
+  final bool showSchedule;
+
+  const _SubjectDetails({required this.label, this.showSchedule = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final subject = SubjectLabel.parse(label);
+    final schedule = label.split(' — ').firstWhere(
+        (part) => part.contains(':') && !part.startsWith('@'),
+        orElse: () => '');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(subject.subjectName,
+            style: const TextStyle(
+              color: ClassliftColors.selectionInk,
+              fontSize: 13,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            )),
+        if (subject.shift != null || subject.section != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              if (subject.shift != null)
+                SelectionBadge(
+                  label: subject.shift!,
+                  icon: subject.shift == 'Noche'
+                      ? Icons.nightlight_outlined
+                      : Icons.wb_sunny_outlined,
+                ),
+              if (subject.section != null)
+                SelectionBadge(label: 'Sección ${subject.section}'),
+            ],
+          ),
+        ],
+        if (subject.professor != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.person_outline_rounded,
+                  size: 15, color: ClassliftColors.selectionMuted),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(subject.professor!,
+                    style: const TextStyle(
+                        fontSize: 11,
+                        height: 1.4,
+                        color: ClassliftColors.selectionMuted)),
+              ),
+            ],
+          ),
+        ],
+        if (showSchedule && schedule.isNotEmpty) _buildScheduleWidget(schedule),
+      ],
+    );
   }
 }
 
-IconData _getShiftIcon(String? shift) {
-  if (shift == null) return Icons.access_time;
-  switch (shift.toLowerCase()) {
-    case 'mañana':
-      return Icons.wb_sunny; // Sol
-    case 'tarde':
-      return Icons.wb_sunny_outlined; // Sol outline
-    case 'noche':
-      return Icons.nights_stay; // Luna
-    default:
-      return Icons.access_time; // Reloj
-  }
-}
-
-Color _getSectionColor(String? section) {
-  if (section == null) return ClassliftColors.grey;
-  switch (section.toUpperCase()) {
-    case 'NB':
-      return ClassliftColors.purple; // Púrpura
-    case 'MI':
-      return ClassliftColors.blue; // Azul
-    case 'A':
-      return ClassliftColors.pink; // Rosa
-    case 'B':
-      return ClassliftColors.cyan; // Cyan
-    case 'C':
-      return ClassliftColors.deepOrange; // Naranja rojizo
-    default:
-      return ClassliftColors.blueGrey; // Azul gris
-  }
-}
-
-// Primero, asegúrate de tener la función para decodificar horarios
+// El horario conserva su codificación y sus valores originales.
 Map<String, String> _decodeSchedule(String encodedSchedule) {
-  Map<String, String> schedule = {};
+  final schedule = <String, String>{};
   if (encodedSchedule.isEmpty) return schedule;
-
-  final entries = encodedSchedule.split(';');
-  for (var entry in entries) {
+  for (final entry in encodedSchedule.split(';')) {
     final parts = entry.split(':');
     if (parts.length >= 2) {
-      final day = parts[0];
-      final timeAndRoom = parts.sublist(1).join(':');
-      schedule[day] = timeAndRoom;
+      schedule[parts[0]] = parts.sublist(1).join(':');
     }
   }
   return schedule;
 }
 
-// Widget para mostrar el horario
-Widget _buildScheduleWidget(String? encodedSchedule) {
-  if (encodedSchedule == null || encodedSchedule.isEmpty) {
-    return const SizedBox.shrink();
-  }
-
+Widget _buildScheduleWidget(String encodedSchedule) {
   final schedule = _decodeSchedule(encodedSchedule);
-  if (schedule.isEmpty) {
-    return const SizedBox.shrink();
-  }
+  if (schedule.isEmpty) return const SizedBox.shrink();
 
-  return Container(
-    margin: const EdgeInsets.only(top: 8),
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: ClassliftColors.blue.withOpacity(0.05),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(
-        color: ClassliftColors.blue.withOpacity(0.2),
-        width: 1,
-      ),
-    ),
+  return Padding(
+    padding: const EdgeInsets.only(top: 12),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              Icons.schedule,
-              size: 14,
-              color: ClassliftColors.blue700,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Horario',
-              style: TextStyle(
-                fontSize: 12,
-                color: ClassliftColors.blue700,
-                fontWeight: FontWeight.w600,
+      children: schedule.entries.map((entry) {
+        final parts = entry.value.split('|');
+        final time = parts.first;
+        final room = parts.length > 1 ? parts[1] : '';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 7),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(entry.key,
+                  style: const TextStyle(
+                    color: ClassliftColors.PrimaryColorVariant,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  )),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (time.isNotEmpty)
+                    SelectionBadge(label: time, icon: Icons.schedule_rounded),
+                  if (room.isNotEmpty)
+                    SelectionBadge(
+                        label: 'Aula $room', icon: Icons.location_on_outlined),
+                ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ...schedule.entries.map((entry) {
-          final parts = entry.value.split('|');
-          final time = parts.isNotEmpty ? parts[0] : '';
-          final room = parts.length > 1 ? parts[1] : '';
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 70,
-                  child: Text(
-                    entry.key,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: ClassliftColors.grey700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      if (time.isNotEmpty) ...[
-                        Icon(
-                          Icons.access_time,
-                          size: 12,
-                          color: ClassliftColors.grey600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          time,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: ClassliftColors.grey600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                      if (room.isNotEmpty) ...[
-                        const SizedBox(width: 12),
-                        Icon(
-                          Icons.room,
-                          size: 12,
-                          color: ClassliftColors.grey600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          room,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: ClassliftColors.grey600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ],
+            ],
+          ),
+        );
+      }).toList(),
     ),
   );
 }

@@ -1,50 +1,46 @@
-import 'package:classlift/screens/class_schedule.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:archive/archive.dart';
 import 'package:classlift/models/career.dart';
+import 'package:classlift/screens/class_schedule.dart';
 import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/utils/evaluation_parser.dart';
-import 'package:lottie/lottie.dart';
-import 'package:flutter/scheduler.dart';
-import 'dart:typed_data';
+import 'package:classlift/widgets/selection/selection_flow_widgets.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:xml/xml.dart';
 
 class SelectCareerScreen extends StatefulWidget {
   final List<String> availableSheets;
   final String? excelFilePath;
 
-  SelectCareerScreen({required this.availableSheets, this.excelFilePath});
+  const SelectCareerScreen({
+    super.key,
+    required this.availableSheets,
+    this.excelFilePath,
+  });
 
   @override
-  _SelectCareerScreenState createState() => _SelectCareerScreenState();
+  State<SelectCareerScreen> createState() => _SelectCareerScreenState();
 }
 
-class _SelectCareerScreenState extends State<SelectCareerScreen>
-    with TickerProviderStateMixin {
-  List<String> selectedCareerCodes = [];
-  Map<String, Map<int, List<String>>>? careerSemesters;
-
-  bool isLoading = false; // Estado de carga
-
-  Map<int, List<String>>? semestersData;
-  int? maxSemester;
+class _SelectCareerScreenState extends State<SelectCareerScreen> {
+  final List<String> selectedCareerCodes = [];
+  final _searchController = TextEditingController();
+  bool isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _processExcelFile() async {
     final bytes = await File(widget.excelFilePath!).readAsBytes();
 
-    // Normalizá por si hay diferencias de mayúsculas/minúsculas
+    // Procesa las mismas hojas seleccionadas, independientemente del buscador.
     final selectedSheets = selectedCareerCodes.map((s) => s.trim()).toList();
-
-    // Procesa SOLO las sheets seleccionadas en un isolate
     final Map<String, Map<int, List<String>>> filtered =
         await compute(parseExcelForSheets, {
       'bytes': bytes,
@@ -65,148 +61,164 @@ class _SelectCareerScreenState extends State<SelectCareerScreen>
     }
   }
 
+  Future<void> _continue() async {
+    if (isLoading) return;
+    if (selectedCareerCodes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, seleccione al menos una carrera'),
+        ),
+      );
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+    setState(() => isLoading = true);
+    try {
+      await _processExcelFile();
+    } on FormatException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<Career> filteredCareers = careers
-        .where((career) => widget.availableSheets.contains(career.code))
-        .toList();
+    final query = _normalizeHeader(_searchController.text);
+    final filteredCareers = careers.where((career) {
+      return widget.availableSheets.contains(career.code) &&
+          (query.isEmpty ||
+              _normalizeHeader(career.description).contains(query) ||
+              _normalizeHeader(career.code).contains(query));
+    }).toList();
 
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0),
-        child: AppBar(
-          title: const Text(
-            "Seleccioná tu carrera",
-            style: TextStyle(
-              color: ClassliftColors.SecondaryColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          backgroundColor: ClassliftColors.PrimaryColor,
-          iconTheme: IconThemeData(
-            color: ClassliftColors.SecondaryColor,
-          ),
-        ),
-      ),
-      body: Container(
-        color: ClassliftColors.BackgroundColor,
-        child: Column(
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-              child: Text(
-                'Seleccionaste ${selectedCareerCodes.length} carrera${selectedCareerCodes.length != 1 ? 's' : ''}',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: ClassliftColors.Black,
-                  fontWeight: FontWeight.w500,
+    return SelectionFlowScaffold(
+      title: 'Seleccioná',
+      accentTitle: 'tu carrera',
+      description:
+          'Elegí la carrera que cursás en la UNA\npara personalizar tu experiencia.',
+      step: 1,
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 18),
+            child: SelectionSurface(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                style: const TextStyle(
+                    color: ClassliftColors.selectionInk, fontSize: 14),
+                cursorColor: ClassliftColors.selectionBlue,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                decoration: InputDecoration(
+                  hintText: 'Buscar carrera...',
+                  hintStyle: const TextStyle(
+                      color: ClassliftColors.selectionMuted, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: ClassliftColors.selectionMuted, size: 24),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 54),
+                  suffixIcon: _searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Limpiar búsqueda',
+                          icon: const Icon(Icons.close_rounded,
+                              color: ClassliftColors.selectionMuted, size: 19),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                        ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide:
+                        const BorderSide(color: ClassliftColors.selectionBlue),
+                  ),
                 ),
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: filteredCareers.length,
-                itemBuilder: (context, index) {
+          ),
+        ),
+        if (filteredCareers.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  const SelectionIcon(icon: Icons.search_off_rounded),
+                  const SizedBox(height: 14),
+                  Text(
+                    query.isEmpty
+                        ? 'No hay carreras disponibles en este archivo.'
+                        : 'No encontramos esa carrera.\nProbá con otro nombre.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: ClassliftColors.selectionMuted, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
                   final career = filteredCareers[index];
                   final isSelected = selectedCareerCodes.contains(career.code);
-
-                  return CareerCheckboxTile(
-                    index: index,
-                    career: career,
-                    isSelected: isSelected,
-                    onTap: () {
-                      setState(() {
-                        if (isSelected) {
-                          selectedCareerCodes.remove(career.code);
-                        } else {
-                          selectedCareerCodes.add(career.code);
-                        }
-                      });
-                    },
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: CareerCheckboxTile(
+                      key: ValueKey(career.code),
+                      index: index,
+                      career: career,
+                      isSelected: isSelected,
+                      onTap: () {
+                        setState(() {
+                          if (isSelected) {
+                            selectedCareerCodes.remove(career.code);
+                          } else {
+                            selectedCareerCodes.add(career.code);
+                          }
+                        });
+                      },
+                    ),
                   );
                 },
+                childCount: filteredCareers.length,
               ),
             ),
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: ClassliftColors.PrimaryColor,
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () {
-                          if (selectedCareerCodes.isEmpty) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Por favor, seleccione al menos una carrera')),
-                            );
-                            return;
-                          }
-
-                          setState(() => isLoading = true);
-
-                          Future.microtask(() async {
-                            try {
-                              await _processExcelFile();
-                            } on FormatException catch (error) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(error.message)),
-                                );
-                              }
-                            } finally {
-                              if (mounted) setState(() => isLoading = false);
-                            }
-                          });
-                        },
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 50),
-                    backgroundColor: ClassliftColors.transparent,
-                    foregroundColor: ClassliftColors.White,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      if (isLoading)
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: ClassliftColors.White,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      if (!isLoading) const Text('Continuar'),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+      ],
+      footer: SelectionFooter(
+        caption: selectedCareerCodes.isEmpty
+            ? 'Podés elegir más de una carrera'
+            : '${selectedCareerCodes.length} carrera${selectedCareerCodes.length == 1 ? '' : 's'} seleccionada${selectedCareerCodes.length == 1 ? '' : 's'}',
+        isLoading: isLoading,
+        onPressed: _continue,
       ),
     );
   }
 }
 
-class CareerCheckboxTile extends StatefulWidget {
+class CareerCheckboxTile extends StatelessWidget {
   final int index;
   final Career career;
   final bool isSelected;
   final VoidCallback onTap;
 
-  CareerCheckboxTile({
+  const CareerCheckboxTile({
+    super.key,
     required this.index,
     required this.career,
     required this.isSelected,
@@ -214,83 +226,35 @@ class CareerCheckboxTile extends StatefulWidget {
   });
 
   @override
-  _CareerCheckboxTileState createState() => _CareerCheckboxTileState();
-}
-
-class _CareerCheckboxTileState extends State<CareerCheckboxTile>
-    with TickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 500),
-    );
-
-    if (widget.isSelected) {
-      _controller.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(CareerCheckboxTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isSelected != oldWidget.isSelected) {
-      if (widget.isSelected != oldWidget.isSelected) {
-        if (widget.isSelected) {
-          _controller.forward();
-        } else {
-          _controller.animateBack(0.0,
-              duration: const Duration(milliseconds: 500));
-        }
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return CupertinoListTile(
-      onTap: widget.onTap,
-      backgroundColor: careers.indexOf(widget.career) % 2 == 0
-          ? ClassliftColors.White // Color para índices pares
-          : ClassliftColors.BackgroundColor, // Color para índices impares
-      title: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 0.0),
-        child: SizedBox(
-          height: 60,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              widget.career.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              softWrap: true,
-              style: CupertinoTheme.of(context).textTheme.textStyle.copyWith(
-                    color: ClassliftColors.Black,
+    return Semantics(
+      checked: isSelected,
+      child: SelectionSurface(
+        selected: isSelected,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: Row(
+              children: [
+                SelectionIcon(selected: isSelected, size: 34),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    career.description,
+                    style: const TextStyle(
+                      color: ClassliftColors.selectionInk,
+                      fontSize: 12.5,
+                      height: 1.35,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
+                ),
+                const SizedBox(width: 12),
+                SelectionIndicator(selected: isSelected),
+              ],
             ),
-          ),
-        ),
-      ),
-      trailing: GestureDetector(
-        onTap: widget.onTap,
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: Lottie.asset(
-            'assets/lottie/checkbox_lottie.json',
-            controller: _controller,
-            onLoaded: (composition) {
-              _controller.duration = composition.duration;
-            },
           ),
         ),
       ),

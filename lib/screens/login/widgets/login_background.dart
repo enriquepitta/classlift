@@ -3,15 +3,24 @@ import 'package:flutter/material.dart';
 /// Decorative artwork stays separate from the form and never intercepts taps.
 class LoginBackground extends StatelessWidget {
   final bool recovery;
+  final Gradient? backgroundGradient;
 
-  const LoginBackground({super.key, this.recovery = false});
+  const LoginBackground({
+    super.key,
+    this.recovery = false,
+    this.backgroundGradient,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: IgnorePointer(
-        child:
-            CustomPaint(painter: _LoginBackgroundPainter(recovery: recovery)),
+        child: CustomPaint(
+          painter: _LoginBackgroundPainter(
+            recovery: recovery,
+            backgroundGradient: backgroundGradient,
+          ),
+        ),
       ),
     );
   }
@@ -19,8 +28,12 @@ class LoginBackground extends StatelessWidget {
 
 class _LoginBackgroundPainter extends CustomPainter {
   final bool recovery;
+  final Gradient? backgroundGradient;
 
-  const _LoginBackgroundPainter({required this.recovery});
+  const _LoginBackgroundPainter({
+    required this.recovery,
+    this.backgroundGradient,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -28,18 +41,20 @@ class _LoginBackgroundPainter extends CustomPainter {
     canvas.drawRect(
       rect,
       Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF638FE0),
-            Color(0xFFEAF3FF),
-            Color(0xFFF8FAFF),
-            Color(0xFFECF4FF),
-            Color(0xFFA4C8FC),
-          ],
-          stops: [0, 0.30, 0.48, 0.76, 1],
-        ).createShader(rect),
+        ..shader = (backgroundGradient ??
+                const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF638FE0),
+                    Color(0xFFEAF3FF),
+                    Color(0xFFF8FAFF),
+                    Color(0xFFECF4FF),
+                    Color(0xFFA4C8FC),
+                  ],
+                  stops: [0, 0.30, 0.48, 0.76, 1],
+                ))
+            .createShader(rect),
     );
     // Work in a normalized portrait space so the artwork scales with the screen.
     canvas.save();
@@ -250,5 +265,6 @@ class _LoginBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LoginBackgroundPainter oldDelegate) =>
-      recovery != oldDelegate.recovery;
+      recovery != oldDelegate.recovery ||
+      backgroundGradient != oldDelegate.backgroundGradient;
 }
