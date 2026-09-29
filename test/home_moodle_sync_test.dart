@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:classlift/screens/home_screen.dart';
 import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
+import 'package:classlift/utils/options_bottom_sheet.dart';
 import 'package:classlift/widgets/home/pending_tasks_section.dart';
 import 'package:firebase_core/firebase_core.dart';
 // ignore: depend_on_referenced_packages
@@ -121,6 +122,33 @@ void main() {
                         }),
                   200);
             }));
+  });
+
+  testWidgets('manual option closes its sheet and keeps the home route',
+      (tester) async {
+    MoodleAuthService.instance.signOut();
+    MoodleTasksService.clearCache();
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(MaterialApp(
+      navigatorKey: navigator,
+      home: const Scaffold(body: Text('Pantalla anterior')),
+    ));
+    navigator.currentState!.push(MaterialPageRoute<void>(
+      builder: (_) => const HomeScreen(),
+    ));
+    await tester.pumpAndSettle();
+    final homeState = tester.state(find.byType(HomeScreen));
+    await tester.tap(find.byTooltip('Añadir'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OptionsBottomSheet), findsOneWidget);
+    await tester.tap(find.text('Agregar manualmente'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OptionsBottomSheet), findsNothing);
+    expect(tester.state(find.byType(HomeScreen)), same(homeState));
+    expect(find.text('Función manual próximamente...'), findsOneWidget);
+    expect(navigator.currentState!.canPop(), isTrue);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('closing schedule recommendation keeps EDUCA visible',

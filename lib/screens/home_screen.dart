@@ -399,12 +399,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _handleExcel() async {
-    Navigator.pop(context);
     await _startExcelImport();
   }
 
   void _handleManual() {
-    Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Función manual próximamente...'),
@@ -631,6 +629,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onAddPressed: () => showModalBottomSheet(
           context: context,
           isScrollControlled: true,
+          useSafeArea: true,
           backgroundColor: ClassliftColors.transparent,
           barrierColor: ClassliftColors.PrimaryColor.withOpacity(0.15),
           builder: (_) => OptionsBottomSheet(
