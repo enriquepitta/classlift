@@ -1,6 +1,27 @@
 import 'package:flutter/material.dart';
 
 class ClassliftColors {
+  // ClassLift indigo and soft blue, shared by the selection flow.
+  static const selectionInk = PrimaryColor;
+  static const selectionMuted = navigationMuted;
+  static const selectionBlue = PrimaryColorVariant;
+  static const selectionButtonEnd = PrimaryColor;
+  static const selectionSurface = Color(0xFFF3F6FB);
+  static const selectionBorder = SecondaryColor;
+  static const selectionIcon = Color(0xFFE4ECF7);
+  static const selectionBackgroundGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      PrimaryColorVariant,
+      Color(0xFFEBF1F8),
+      Color(0xFFF9FAFC),
+      Color(0xFFEEF3F9),
+      SecondaryColor,
+    ],
+    stops: [0, 0.30, 0.48, 0.76, 1],
+  );
+
   // Shared Classlift blue surface for the home header and calendar.
   static const calendarSurface = Color(0xFF3B55A5);
   static const calendarInk = Color(0xFFFFFFFF);
