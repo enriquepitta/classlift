@@ -14,6 +14,7 @@ import 'package:classlift/models/database_models.dart';
 import 'package:classlift/services/database_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'select_career.dart';
+import 'faculty_schedule_screen.dart';
 import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 import 'package:classlift/utils/home_subtitle.dart';
@@ -402,6 +403,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _startExcelImport();
   }
 
+  Future<void> _startFacultySchedule() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const FacultyScheduleScreen()),
+    );
+    if (mounted) await _loadClassesForSelectedDay();
+  }
+
   void _handleManual() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -635,6 +644,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           builder: (_) => OptionsBottomSheet(
             onExcel: _handleExcel,
             onManual: _handleManual,
+            onFaculty: _startFacultySchedule,
           ),
         ),
       ),
@@ -661,12 +671,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 eyebrow: 'Recomendado',
                 title: 'Configurá tu horario',
                 description:
-                    'Importá el horario de tu facultad y seleccioná las materias que estás cursando.',
-                actionLabel: 'Importar horario',
-                actionIcon: Icons.description_outlined,
+                    'Elegí las materias que cursás con los horarios publicados por la facultad.',
+                actionLabel: 'Ver horarios',
+                actionIcon: Icons.school_outlined,
                 illustrationIcon: Icons.calendar_month_rounded,
                 badgeIcon: Icons.add_rounded,
-                onAction: _startExcelImport,
+                onAction: _startFacultySchedule,
               ),
             ),
           if (showEducaCard) ...[
