@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:classlift/services/database_service.dart';
+import 'package:classlift/services/moodle_credential_store.dart';
 
 class MoodleConfig {
   static const siteUrl = String.fromEnvironment(
@@ -17,6 +18,7 @@ class MoodleConfig {
 
 class MoodleSession {
   final String siteUrl;
+
   final String token;
   final int userId;
   final String fullName;
@@ -60,7 +62,9 @@ class MoodleSession {
 class MoodleAuthException implements Exception {
   final String message;
   final bool requiresReconnect;
-  const MoodleAuthException(this.message, {this.requiresReconnect = false});
+  final String? code;
+  const MoodleAuthException(this.message,
+      {this.requiresReconnect = false, this.code});
 }
 
 class MoodleAuthService {
@@ -68,11 +72,25 @@ class MoodleAuthService {
   static const _storedSessionKey = 'moodle_session';
   final http.Client _client;
   final String siteUrl;
+  final MoodleCredentialStore _credentialStore;
+  final Future<void> Function(MoodleSession)? _sessionPersistence;
+  final Future<void> Function()? _sessionRemoval;
+  Future<MoodleSession?>? _renewal;
+  MoodleSession? _renewingSession;
+  int _sessionRevision = 0;
 
   MoodleSession? session;
 
-  MoodleAuthService({http.Client? client, this.siteUrl = MoodleConfig.siteUrl})
-      : _client = client ?? http.Client();
+  MoodleAuthService(
+      {http.Client? client,
+      this.siteUrl = MoodleConfig.siteUrl,
+      MoodleCredentialStore? credentialStore,
+      Future<void> Function(MoodleSession)? sessionPersistence,
+      Future<void> Function()? sessionRemoval})
+      : _client = client ?? http.Client(),
+        _credentialStore = credentialStore ?? MoodleCredentialStore(),
+        _sessionPersistence = sessionPersistence,
+        _sessionRemoval = sessionRemoval;
 
   Future<Map<String, dynamic>> _post(String path, Map<String, String> fields,
       {String? baseUrl}) async {
@@ -97,11 +115,10 @@ class MoodleAuthService {
         throw const FormatException();
       }
       if (data.containsKey('error') || data.containsKey('exception')) {
-        final code = data['errorcode'];
-        final requiresReconnect = code == 'invalidtoken' ||
-            code == 'accessexception' ||
-            code == 'webservice_access_exception' ||
-            code == 'servicenotavailable';
+        final code = data['errorcode'] as String?;
+        // Access/service errors can also mean permissions, IP restrictions or
+        // maintenance. They do not establish that the token has expired.
+        final requiresReconnect = code == 'invalidtoken';
         throw MoodleAuthException(
           code == 'invalidlogin'
               ? 'Usuario o contraseña incorrectos.'
@@ -112,6 +129,7 @@ class MoodleAuthService {
                       : 'Moodle rechazó el acceso. Verificá que tu cuenta tenga '
                           'habilitado el servicio móvil o consultá al administrador.',
           requiresReconnect: requiresReconnect,
+          code: code,
         );
       }
       return data;
@@ -129,30 +147,134 @@ class MoodleAuthService {
 
   Future<MoodleSession> signIn(String username, String password) async {
     session = null;
-    final credentials = await _post('/login/token.php', {
-      'username': username.trim(),
-      'password': password,
-      'service': 'moodle_mobile_app',
-    });
+    return session = await _authenticate(siteUrl, username, password);
+  }
+
+  Future<MoodleSession> _authenticate(
+      String campusUrl, String username, String password) async {
+    final credentials = await _post(
+        '/login/token.php',
+        {
+          'username': username.trim(),
+          'password': password,
+          'service': 'moodle_mobile_app',
+        },
+        baseUrl: campusUrl);
     final token = credentials['token'];
     if (token is! String || token.isEmpty) {
       throw const MoodleAuthException('Moodle no devolvió un token de acceso.');
     }
-    final profile = await _post('/webservice/rest/server.php', {
-      'wstoken': token,
-      'wsfunction': 'core_webservice_get_site_info',
-      'moodlewsrestformat': 'json',
-    });
+    final profile = await _post(
+        '/webservice/rest/server.php',
+        {
+          'wstoken': token,
+          'wsfunction': 'core_webservice_get_site_info',
+          'moodlewsrestformat': 'json',
+        },
+        baseUrl: campusUrl);
     if (profile['userid'] is! int || profile['fullname'] is! String) {
       throw const MoodleAuthException(
           'No se pudo validar tu perfil de Moodle.');
     }
-    return session = MoodleSession(
-      siteUrl: siteUrl,
+    return MoodleSession(
+      siteUrl: campusUrl,
       token: token,
       userId: profile['userid'] as int,
       fullName: profile['fullname'] as String,
     );
+  }
+
+  Future<void> connect(String username, String password,
+      {required String campusUrl, required bool remember}) async {
+    final revision = ++_sessionRevision;
+    final value = await _authenticate(campusUrl, username, password);
+    if (_sessionRevision != revision) {
+      throw const MoodleAuthException('La conexión al campus fue cancelada.');
+    }
+    try {
+      if (remember) {
+        await _credentialStore.save(MoodleRememberedAccount(
+            siteUrl: value.siteUrl,
+            userId: value.userId,
+            username: username.trim(),
+            password: password));
+      } else {
+        await _credentialStore.delete();
+      }
+    } catch (_) {
+      throw const MoodleAuthException(
+          'No pudimos actualizar la cuenta recordada en este dispositivo. Intentá nuevamente.');
+    }
+    if (_sessionRevision != revision) {
+      throw const MoodleAuthException('La conexión al campus fue cancelada.');
+    }
+    await persistSession(value);
+  }
+
+  Future<MoodleSession?> renewSession(MoodleSession expired) async {
+    if (identical(_renewingSession, expired) && _renewal != null) {
+      return _renewal;
+    }
+    if (!identical(session, expired)) return null;
+    _renewingSession = expired;
+    final future = _renewRememberedSession(expired, _sessionRevision);
+    _renewal = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_renewal, future)) {
+        _renewal = null;
+        _renewingSession = null;
+      }
+    }
+  }
+
+  Future<MoodleSession?> _renewRememberedSession(
+      MoodleSession expired, int revision) async {
+    bool unchanged() =>
+        identical(session, expired) && _sessionRevision == revision;
+    MoodleRememberedAccount? account;
+    try {
+      account = await _credentialStore.read();
+    } catch (_) {
+      throw const MoodleAuthException(
+          'No pudimos acceder a la cuenta recordada. Desbloqueá el dispositivo y reintentá.');
+    }
+    if (!unchanged() ||
+        account == null ||
+        account.siteUrl != expired.siteUrl ||
+        account.userId != expired.userId) {
+      return null;
+    }
+    late final MoodleSession renewed;
+    try {
+      renewed = await _authenticate(
+          account.siteUrl, account.username, account.password);
+    } on MoodleAuthException catch (error) {
+      if (unchanged() &&
+          const {'invalidlogin', 'passwordisexpired'}.contains(error.code)) {
+        await _credentialStore.delete();
+        throw const MoodleAuthException(
+            'Las credenciales de tu campus cambiaron. Volvé a conectar tu cuenta.',
+            requiresReconnect: true);
+      }
+      rethrow;
+    }
+    if (!unchanged()) return null;
+    if (renewed.userId != expired.userId) {
+      await _credentialStore.delete();
+      throw const MoodleAuthException('Volvé a conectar tu cuenta del campus.',
+          requiresReconnect: true);
+    }
+    await persistSession(renewed);
+    return identical(session, renewed) ? renewed : null;
+  }
+
+  Future<void> disconnect() async {
+    signOut();
+    await _credentialStore.delete();
+    if (_sessionRemoval != null) return _sessionRemoval();
+    await DatabaseService.deleteAppSetting(_storedSessionKey);
   }
 
   Future<Map<String, dynamic>> call(String function,
@@ -164,33 +286,61 @@ class MoodleAuthService {
         requiresReconnect: true,
       );
     }
-    final result = await _post(
-      '/webservice/rest/server.php',
-      {
-        ...parameters,
-        'wstoken': current.token,
-        'wsfunction': function,
-        'moodlewsrestformat': 'json',
-      },
-      baseUrl: current.siteUrl,
-    );
+    Future<Map<String, dynamic>> request(String name) => _post(
+          '/webservice/rest/server.php',
+          {
+            if (name == function) ...parameters,
+            'wstoken': current.token,
+            'wsfunction': name,
+            'moodlewsrestformat': 'json',
+          },
+          baseUrl: current.siteUrl,
+        );
+    late final Map<String, dynamic> result;
+    try {
+      result = await request(function);
+    } on MoodleAuthException catch (error) {
+      if (!identical(current, session)) {
+        throw const MoodleAuthException(
+            'La sesión cambió. Volvé a cargar las tareas.');
+      }
+      // Moodle deletes expired tokens before returning an ambiguous access
+      // error. A profile check distinguishes this from a service restriction.
+      if (function != 'core_webservice_get_site_info' &&
+          const {'accessexception', 'webservice_access_exception'}
+              .contains(error.code)) {
+        try {
+          await request('core_webservice_get_site_info');
+        } on MoodleAuthException catch (verificationError) {
+          if (identical(current, session) &&
+              verificationError.requiresReconnect) {
+            rethrow;
+          }
+        }
+      }
+      rethrow;
+    }
     if (!identical(current, session)) {
       throw const MoodleAuthException(
-        'La sesión de Moodle cambió. Volvé a conectar EDUCA.',
-        requiresReconnect: true,
+        'La sesión cambió. Volvé a cargar las tareas.',
       );
     }
     return result;
   }
 
   Future<void> persistSession(MoodleSession value) async {
+    _sessionRevision++;
     session = value;
+    if (_sessionPersistence != null) return _sessionPersistence(value);
     await DatabaseService.setAppSetting(
         _storedSessionKey, jsonEncode(value.toJson()));
   }
 
   Future<MoodleSession?> restoreSession() async {
+    if (session != null) return session;
     final raw = await DatabaseService.getAppSetting(_storedSessionKey);
+    // A sign-in may finish while the database read is pending.
+    if (session != null) return session;
     if (raw == null) return session;
     try {
       final decoded = jsonDecode(raw);
@@ -208,5 +358,8 @@ class MoodleAuthService {
     await DatabaseService.deleteAppSetting(_storedSessionKey);
   }
 
-  void signOut() => session = null;
+  void signOut() {
+    _sessionRevision++;
+    session = null;
+  }
 }

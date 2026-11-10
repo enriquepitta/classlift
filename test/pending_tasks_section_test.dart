@@ -12,6 +12,8 @@ import 'package:classlift/services/moodle_tasks_service.dart';
 import 'package:classlift/widgets/home/pending_tasks_section.dart';
 
 void main() {
+  setUp(MoodleTasksService.clearCache);
+  tearDown(MoodleTasksService.clearCache);
   testWidgets('tasks opened directly have a back button to Home',
       (tester) async {
     final router = GoRouter(
@@ -114,6 +116,26 @@ void main() {
             siteUrl: 'https://school.moodledemo.net',
           ));
 
+  testWidgets('keeps cached tasks visible after a temporary sync failure',
+      (tester) async {
+    MoodleTasksService.lastResult = MoodleTasksResult(tasks);
+    final failed = Completer<MoodleTasksResult>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SingleChildScrollView(
+                child: PendingTasksSection(
+                    future: failed.future, onRefresh: () {})))));
+    await tester.pump();
+    expect(find.text('Ejercitario — Integrales'), findsOneWidget);
+    failed.completeError(const MoodleAuthException('Campus no disponible.'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ejercitario — Integrales'), findsOneWidget);
+    expect(find.text('Mostrando la última sincronización.'), findsOneWidget);
+    expect(find.text('Reintentar'), findsOneWidget);
+    expect(find.text('Reconectar EDUCA'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
       'carousel fits narrow screens and large text, and opens all tasks',
       (tester) async {
@@ -176,6 +198,7 @@ void main() {
   });
 
   testWidgets('session errors ask to reconnect EDUCA', (tester) async {
+    MoodleTasksService.lastResult = MoodleTasksResult(tasks);
     final completer = Completer<MoodleTasksResult>();
     var reconnects = 0;
     await tester.pumpWidget(MaterialApp(
@@ -191,6 +214,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Tu sesión de EDUCA venció.'), findsOneWidget);
     expect(find.text('Reconectar EDUCA'), findsOneWidget);
+    expect(find.text('Ejercitario — Integrales'), findsNothing);
     await tester.tap(find.text('Reconectar EDUCA'));
     await tester.pumpAndSettle();
     expect(reconnects, 1);

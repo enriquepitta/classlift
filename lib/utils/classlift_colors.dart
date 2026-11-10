@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 class ClassliftColors {
-  // ClassLift indigo and soft blue, shared by the selection flow.
+  // The schedule selection flow shares the home indigo.
   static const selectionInk = PrimaryColor;
   static const selectionMuted = navigationMuted;
-  static const selectionBlue = PrimaryColorVariant;
-  static const selectionButtonEnd = PrimaryColor;
+  static const selectionBlue = PrimaryColor;
+  static const selectionButtonEnd = calendarSurface;
   static const selectionSurface = Color(0xFFF3F6FB);
   static const selectionBorder = SecondaryColor;
   static const selectionIcon = Color(0xFFE4ECF7);
@@ -13,7 +13,7 @@ class ClassliftColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      PrimaryColorVariant,
+      PrimaryColor,
       Color(0xFFEBF1F8),
       Color(0xFFF9FAFC),
       Color(0xFFEEF3F9),

@@ -6,6 +6,7 @@ Future<void> openOptions(
   WidgetTester tester, {
   required VoidCallback onExcel,
   required VoidCallback onManual,
+  VoidCallback? onFaculty,
   Size size = const Size(390, 844),
   double textScale = 1,
 }) async {
@@ -32,6 +33,7 @@ Future<void> openOptions(
             builder: (_) => OptionsBottomSheet(
               onExcel: onExcel,
               onManual: onManual,
+              onFaculty: onFaculty,
             ),
           ),
           child: const Text('Abrir opciones'),
@@ -44,6 +46,34 @@ Future<void> openOptions(
 }
 
 void main() {
+  testWidgets('opens the faculty schedule option once', (tester) async {
+    var calls = 0;
+    await openOptions(tester,
+        onExcel: () {}, onManual: () {}, onFaculty: () => calls++);
+    await tester.tap(find.text('Horarios de la facultad'));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(find.byType(OptionsBottomSheet), findsNothing);
+  });
+
+  testWidgets('all schedule choices remain reachable with large text',
+      (tester) async {
+    await openOptions(tester,
+        onExcel: () {},
+        onManual: () {},
+        onFaculty: () {},
+        size: const Size(320, 568),
+        textScale: 1.6);
+    final manual = find.text('Agregar manualmente');
+    await tester.scrollUntilVisible(manual, 120,
+        scrollable: find.descendant(
+            of: find.byType(OptionsBottomSheet),
+            matching: find.byType(Scrollable)));
+    expect(manual, findsOneWidget);
+    expect(find.text('Cancelar').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final manual in [false, true]) {
     testWidgets('${manual ? 'manual' : 'Excel'} closes once before its action',
         (tester) async {

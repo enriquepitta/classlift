@@ -52,11 +52,14 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
       child: FutureBuilder<MoodleTasksResult>(
         future: future,
         builder: (context, snapshot) {
-          final result = snapshot.data;
+          final reconnect = snapshot.error is MoodleAuthException &&
+              (snapshot.error as MoodleAuthException).requiresReconnect;
+          final result =
+              reconnect ? null : snapshot.data ?? MoodleTasksService.lastResult;
           final loading = future != null &&
               snapshot.connectionState != ConnectionState.done;
           final now = DateTime.now();
-          final available = !loading && !snapshot.hasError ? result : null;
+          final available = result;
           final tasks = available?.allPendingAt(now) ?? <MoodleTask>[];
           final upcoming = available?.upcomingAt(now) ?? <MoodleTask>[];
           final overdue = available?.overdueAt(now) ?? <MoodleTask>[];
@@ -134,7 +137,7 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
               const SizedBox(height: 10),
               if (future == null)
                 const SizedBox.shrink()
-              else if (loading)
+              else if (loading && available == null)
                 const SizedBox(
                     height: 180,
                     child: Center(child: CircularProgressIndicator()))
@@ -143,8 +146,15 @@ class _PendingTasksSectionState extends State<PendingTasksSection> {
                   error: snapshot.error,
                   onRetry: onRefresh,
                   onReconnect: onReconnect,
-                )
-              else ...[
+                ),
+              if ((loading || snapshot.hasError) && available != null)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                  child: Text('Mostrando la última sincronización.',
+                      style: TextStyle(color: ClassliftColors.taskMuted)),
+                ),
+              if (future != null &&
+                  (available != null || (!loading && !snapshot.hasError))) ...[
                 if (upcoming.isEmpty)
                   _Notice(
                       message: tasks.isNotEmpty

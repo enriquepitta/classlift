@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:classlift/models/moodle_task.dart';
@@ -7,6 +9,9 @@ import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 
 void main() {
+  setUp(MoodleTasksService.clearCache);
+  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  tearDown(MoodleTasksService.clearCache);
   test('prioritizes future deadlines and separates overdue and undated tasks',
       () {
     final now = DateTime(2026, 9, 17, 12);
@@ -147,5 +152,110 @@ void main() {
           (error) => error.requiresReconnect, 'requiresReconnect', true)),
     );
     expect(auth.session, isNull);
+  });
+
+  for (final code in [
+    'accessexception',
+    'webservice_access_exception',
+    'servicenotavailable',
+    'sitemaintenance',
+  ]) {
+    test('retains the session and cached tasks after $code', () async {
+      var failing = false;
+      final auth = MoodleAuthService(client: MockClient((request) async {
+        if (failing) {
+          return http.Response(
+              jsonEncode({
+                'exception': 'webservice_access_exception',
+                'errorcode': code,
+              }),
+              200);
+        }
+        return http.Response('{"courses":[]}', 200);
+      }))
+        ..session = session;
+      final service = MoodleTasksService(auth: auth);
+      final cached = await service.load();
+      failing = true;
+      await expectLater(
+          service.load(),
+          throwsA(isA<MoodleAuthException>()
+              .having((e) => e.requiresReconnect, 'requiresReconnect', false)));
+      expect(auth.session, same(session));
+      expect(MoodleTasksService.lastResult, same(cached));
+      failing = false;
+      await service.load();
+      expect(auth.session, same(session));
+    });
+  }
+
+  test('confirms an expired token after an ambiguous access error', () async {
+    final auth = MoodleAuthService(
+        client: MockClient((request) async => http.Response(
+            jsonEncode({
+              'exception': 'moodle_exception',
+              'errorcode': request.bodyFields['wsfunction'] ==
+                      'core_webservice_get_site_info'
+                  ? 'invalidtoken'
+                  : 'accessexception',
+            }),
+            200)))
+      ..session = session;
+    await expectLater(
+        MoodleTasksService(auth: auth).load(),
+        throwsA(isA<MoodleAuthException>()
+            .having((e) => e.requiresReconnect, 'requiresReconnect', true)));
+    expect(auth.session, isNull);
+  });
+
+  test('an old failed request cannot disconnect a newly signed-in session',
+      () async {
+    final response = Completer<http.Response>();
+    final auth = MoodleAuthService(client: MockClient((_) => response.future))
+      ..session = session;
+    final load = MoodleTasksService(auth: auth).load();
+    final expected = expectLater(
+        load,
+        throwsA(isA<MoodleAuthException>()
+            .having((e) => e.requiresReconnect, 'requiresReconnect', false)));
+    const replacement = MoodleSession(
+        siteUrl: 'https://other.example.edu',
+        token: 'new-token',
+        userId: 90,
+        fullName: 'Other Student');
+    auth.session = replacement;
+    response.complete(http.Response(
+        '{"exception":"moodle_exception","errorcode":"invalidtoken"}', 200));
+    await expected;
+    expect(auth.session, same(replacement));
+  });
+
+  test(
+      'rejects an expired token during submission loading instead of showing unknown tasks',
+      () async {
+    final auth = MoodleAuthService(
+        client: MockClient((request) async => http.Response(
+            jsonEncode(
+                request.bodyFields['wsfunction'] == 'mod_assign_get_assignments'
+                    ? {
+                        'courses': [
+                          {
+                            ...course,
+                            'assignments': [assignment(1)]
+                          }
+                        ]
+                      }
+                    : {
+                        'exception': 'moodle_exception',
+                        'errorcode': 'invalidtoken'
+                      }),
+            200)))
+      ..session = session;
+    await expectLater(
+        MoodleTasksService(auth: auth).load(),
+        throwsA(isA<MoodleAuthException>()
+            .having((e) => e.requiresReconnect, 'requiresReconnect', true)));
+    expect(auth.session, isNull);
+    expect(MoodleTasksService.lastResult, isNull);
   });
 }

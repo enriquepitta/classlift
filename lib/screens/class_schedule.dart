@@ -338,8 +338,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                                 ),
                                 child: Text('$semester',
                                     style: const TextStyle(
-                                        color:
-                                            ClassliftColors.PrimaryColorVariant,
+                                        color: ClassliftColors.selectionBlue,
                                         fontWeight: FontWeight.w600)),
                               ),
                               expanded: expandedSemesters[careerCode]
@@ -370,7 +369,7 @@ class _SelectSemesterScreenState extends State<SelectSemesterScreen> {
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w500,
                                                   color: ClassliftColors
-                                                      .PrimaryColorVariant,
+                                                      .selectionBlue,
                                                 ),
                                               ),
                                             ),
@@ -791,7 +790,7 @@ Widget _buildScheduleWidget(String encodedSchedule) {
             children: [
               Text(entry.key,
                   style: const TextStyle(
-                    color: ClassliftColors.PrimaryColorVariant,
+                    color: ClassliftColors.selectionBlue,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   )),

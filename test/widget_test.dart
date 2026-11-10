@@ -1,30 +1,21 @@
-// This is a basic Flutter widget test.dart.
-//
-// To perform an interaction with a widget in your test.dart, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:classlift/main.dart';
+import 'package:classlift/router/app_router.dart';
+import 'package:classlift/screens/login/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:classlift/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test.dart', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('app router opens the social login screen', (tester) async {
+    appRouter.go('/login');
     await tester.pumpWidget(const Classlift());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.text('Continuar con Google').hitTestable(), findsOneWidget);
+    expect(find.text('Continuar con Apple').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    appRouter.dispose();
   });
 }

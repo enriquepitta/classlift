@@ -193,19 +193,16 @@ class SelectionFooter extends StatelessWidget {
             DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(25),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: onPressed != null || isLoading
-                      ? const [
-                          ClassliftColors.selectionBlue,
-                          ClassliftColors.selectionButtonEnd,
-                        ]
-                      : const [
+                gradient: onPressed != null || isLoading
+                    ? ClassliftColors.calendarSurfaceGradient
+                    : const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
                           ClassliftColors.selectionBorder,
                           ClassliftColors.SecondaryColor,
                         ],
-                ),
+                      ),
                 boxShadow: onPressed == null
                     ? []
                     : [
@@ -409,8 +406,8 @@ class SelectionBadge extends StatelessWidget {
               alignment: PlaceholderAlignment.middle,
               child: Padding(
                 padding: const EdgeInsets.only(right: 5),
-                child: Icon(icon,
-                    size: 13, color: ClassliftColors.PrimaryColorVariant),
+                child:
+                    Icon(icon, size: 13, color: ClassliftColors.selectionBlue),
               ),
             ),
           TextSpan(text: label),
@@ -419,7 +416,7 @@ class SelectionBadge extends StatelessWidget {
           fontSize: 11,
           height: 1.3,
           fontWeight: FontWeight.w500,
-          color: ClassliftColors.PrimaryColorVariant,
+          color: ClassliftColors.selectionBlue,
         ),
       ),
     );

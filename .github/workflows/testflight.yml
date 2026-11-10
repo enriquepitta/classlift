@@ -1,0 +1,25 @@
+name: ClassLift TestFlight en Xcode Cloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: Rama de ClassLift que se compilará
+        required: true
+        default: testflight-classlift
+
+permissions:
+  contents: read
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Lanzar compilación en Xcode Cloud
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          CLASSLIFT_SOURCE_BRANCH: ${{ inputs.source_branch }}
+        run: ruby tool/start_xcode_cloud.rb

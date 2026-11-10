@@ -41,6 +41,8 @@
 	<array/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Esta app necesita acceso a la red local para comunicarse con dispositivos cercanos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>El selector de archivos puede solicitar acceso a tu fototeca. ClassLift utiliza archivos Excel para importar horarios.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

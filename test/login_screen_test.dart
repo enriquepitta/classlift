@@ -1,176 +1,134 @@
+import 'dart:async';
 import 'package:classlift/screens/login/login_screen.dart';
-import 'package:classlift/screens/login/widgets/login_title.dart';
+import 'package:classlift/screens/login/controller/login_controller.dart';
+import 'package:classlift/screens/login/widgets/bottom_navigation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 
 void main() {
-  setUp(() => KeyboardVisibilityTesting.setVisibilityForTesting(false));
-
-  Future<void> showLogin(WidgetTester tester,
-      {Size size = const Size(390, 844)}) async {
-    tester.view.physicalSize = size;
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetViewInsets);
-    await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(useMaterial3: true, fontFamily: 'Poppins'),
-      home: const LoginScreen(),
-    ));
-    await tester.pumpAndSettle();
-  }
-
   for (final size in [const Size(390, 844), const Size(320, 568)]) {
-    testWidgets('Login retains focus, text and actions with keyboard at $size',
-        (tester) async {
-      await showLogin(tester, size: size);
-      final google =
-          find.widgetWithText(OutlinedButton, 'Continuar con Google');
-      final googleSize = tester.getSize(google);
-      final googleState = tester.state(google);
-      final email = find.byType(EditableText).first;
-      final emailState = tester.state(email);
-      await tester.enterText(
-          find.byType(TextFormField).first, 'alumno@example.com');
-      KeyboardVisibilityTesting.setVisibilityForTesting(true);
-      for (final inset in [80.0, 160.0, 260.0]) {
-        tester.view.viewInsets = FakeViewPadding(bottom: inset);
-        await tester.pump(const Duration(milliseconds: 16));
-        expect(tester.state(email), same(emailState));
-        expect(tester.state(google), same(googleState));
-        expect(tester.getSize(google), googleSize);
-        expect(find.text('O continuá con'), findsOneWidget);
-        expect(find.text('Moodle'), findsNothing);
-        expect(find.text('Apple'), findsNothing);
-        expect(tester.widget<EditableText>(email).focusNode.hasFocus, isTrue);
-        expect(
-            tester
-                .getBottomLeft(
-                    find.widgetWithText(ElevatedButton, 'Iniciá sesión'))
-                .dy,
-            lessThanOrEqualTo(size.height - inset));
-      }
-      await tester.testTextInput.receiveAction(TextInputAction.next);
-      await tester.pumpAndSettle();
-      final password = find.byType(EditableText).last;
-      expect(tester.widget<EditableText>(password).focusNode.hasFocus, isTrue);
-      await tester.enterText(
-          find.byType(TextFormField).last, 'clave de prueba');
-      final passwordState = tester.state(password);
-      await tester.ensureVisible(find.byTooltip('Mostrar contraseña'));
-      await tester.tap(find.byTooltip('Mostrar contraseña'));
-      await tester.pumpAndSettle();
-      expect(tester.state(password), same(passwordState));
-      expect(tester.widget<EditableText>(password).obscureText, isFalse);
-      expect(tester.widget<EditableText>(password).focusNode.hasFocus, isTrue);
-      expect(tester.widget<EditableText>(password).controller.text,
-          'clave de prueba');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(tester.widget<EditableText>(password).focusNode.hasFocus, isFalse);
-      tester.view.resetViewInsets();
-      KeyboardVisibilityTesting.setVisibilityForTesting(false);
-      await tester.pumpAndSettle();
-      expect(tester.state(email), same(emailState));
-      expect(tester.widget<EditableText>(email).controller.text,
-          'alumno@example.com');
-      expect(find.text('Continuar con Google'), findsOneWidget);
-      expect(find.text('Moodle'), findsNothing);
-      expect(find.text('Apple'), findsNothing);
-      expect(tester.takeException(), isNull);
-    });
+    for (final textScale in [1.0, 2.0]) {
+      testWidgets('Social login fits $size with text scale $textScale',
+          (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(MaterialApp(
+          builder: (_, child) => MediaQuery(
+            data: MediaQueryData(
+                size: size, textScaler: TextScaler.linear(textScale)),
+            child: child!,
+          ),
+          home: const LoginScreen(),
+        ));
+        await tester.pumpAndSettle();
+        expect(find.byType(TextFormField), findsNothing);
+        expect(find.textContaining('Registrate'), findsNothing);
+        expect(find.textContaining('contraseña'), findsNothing);
+        for (final label in ['Continuar con Google', 'Continuar con Apple']) {
+          await tester.ensureVisible(find.text(label));
+          expect(find.text(label).hitTestable(), findsOneWidget);
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
   }
 
   testWidgets(
-      'Header expands smoothly when the keyboard closes and can reverse',
+      'Both providers block duplicate requests and recover after cancellation',
       (tester) async {
-    await showLogin(tester);
-    final header = find.ancestor(
-      of: find.byType(LoginTitle),
-      matching: find.byType(TweenAnimationBuilder<double>),
-    );
-    final fullHeight = tester.getSize(header).height;
-    final email = find.byType(EditableText).first;
-    final emailState = tester.state(email);
-    await tester.enterText(
-        find.byType(TextFormField).first, 'alumno@example.com');
-    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    final google = Completer<void>();
+    final apple = Completer<void>();
+    var googleCalls = 0;
+    var appleCalls = 0;
+    var signedIn = 0;
+    late LoginController controller;
+    await tester.pumpWidget(MaterialApp(
+        home: _ControllerHost(
+      create: (context, vsync) => controller = LoginController(
+        context,
+        vsync: vsync,
+        googleOperation: () {
+          googleCalls++;
+          return google.future;
+        },
+        appleOperation: () {
+          appleCalls++;
+          return apple.future;
+        },
+        onSignedIn: () => signedIn++,
+      ),
+    )));
     await tester.pumpAndSettle();
-    final compactHeight = tester.getSize(header).height;
-    expect(compactHeight, lessThan(fullHeight));
-
-    tester.view.resetViewInsets();
+    await tester.tap(find.text('Continuar con Google'));
     await tester.pump();
-    expect(tester.getSize(header).height, closeTo(compactHeight, 0.01));
-    await tester.pump(const Duration(milliseconds: 80));
-    final intermediateHeight = tester.getSize(header).height;
-    expect(intermediateHeight, greaterThan(compactHeight));
-    expect(intermediateHeight, lessThan(fullHeight));
-
-    // Reopening mid-transition continues from the current size without a jump.
-    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+    await controller.signInWithApple();
+    expect(googleCalls, 1);
+    expect(appleCalls, 0);
+    expect(
+        tester
+            .widget<OutlinedButton>(find.byType(OutlinedButton).last)
+            .onPressed,
+        isNull);
+    google.completeError(FirebaseAuthException(code: 'web-context-cancelled'));
+    await tester.pumpAndSettle();
+    expect(signedIn, 0);
+    await tester.tap(find.text('Continuar con Apple'));
     await tester.pump();
-    expect(tester.getSize(header).height, closeTo(intermediateHeight, 0.01));
-    await tester.pump(const Duration(milliseconds: 220));
-    expect(tester.getSize(header).height, closeTo(compactHeight, 0.01));
-    tester.view.resetViewInsets();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 220));
-    expect(tester.getSize(header).height, closeTo(fullHeight, 0.01));
-    expect(tester.state(email), same(emailState));
-    expect(tester.widget<EditableText>(email).controller.text,
-        'alumno@example.com');
+    expect(appleCalls, 1);
+    apple.complete();
+    await tester.pumpAndSettle();
+    expect(signedIn, 1);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Login validates and registration keeps entered credentials',
+  testWidgets('Completing sign-in after leaving the screen is safe',
       (tester) async {
-    await showLogin(tester);
-    await tester.tap(find.widgetWithText(ElevatedButton, 'Iniciá sesión'));
+    final pending = Completer<void>();
+    await tester.pumpWidget(MaterialApp(
+        home: _ControllerHost(
+      create: (context, vsync) => LoginController(
+        context,
+        vsync: vsync,
+        appleOperation: () => pending.future,
+        onSignedIn: () => fail('A disposed screen must not navigate'),
+      ),
+    )));
     await tester.pumpAndSettle();
-    expect(
-        find.text('Por favor ingresa un correo electrónico'), findsOneWidget);
-    expect(find.text('Por favor ingresa una contraseña'), findsOneWidget);
-    await tester.enterText(
-        find.byType(TextFormField).first, 'alumno@example.com');
-    await tester.enterText(find.byType(TextFormField).last, 'clave de prueba');
-    await tester.tap(find.text('¿No tenés una cuenta? Registrate'));
-    await tester.pumpAndSettle();
-    expect(find.byType(TextFormField), findsNWidgets(4));
-    expect(find.widgetWithText(ElevatedButton, 'Regístrate'), findsOneWidget);
-    expect(
-        tester
-            .widget<EditableText>(find.byType(EditableText).at(1))
-            .controller
-            .text,
-        'alumno@example.com');
-    await tester.tap(find.text('¿Ya tenés una cuenta? Iniciá sesión'));
-    await tester.pumpAndSettle();
-    expect(find.byType(TextFormField), findsNWidgets(2));
-    expect(
-        tester
-            .widget<EditableText>(find.byType(EditableText).last)
-            .controller
-            .text,
-        'clave de prueba');
+    await tester.tap(find.text('Continuar con Apple'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    pending.complete();
+    await tester.pump();
     expect(tester.takeException(), isNull);
   });
+}
 
-  testWidgets('Password recovery retains its route', (tester) async {
-    final router = GoRouter(initialLocation: '/login', routes: [
-      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-      GoRoute(
-          path: '/forgot-password',
-          builder: (_, __) => const Scaffold(body: Text('Recuperar cuenta'))),
-    ]);
-    addTearDown(router.dispose);
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('¿Olvidaste tu contraseña?'));
-    await tester.tap(find.text('¿Olvidaste tu contraseña?'));
-    await tester.pumpAndSettle();
-    expect(find.text('Recuperar cuenta'), findsOneWidget);
-  });
+class _ControllerHost extends StatefulWidget {
+  const _ControllerHost({required this.create});
+  final LoginController Function(BuildContext, TickerProvider) create;
+  @override
+  State<_ControllerHost> createState() => _ControllerHostState();
+}
+
+class _ControllerHostState extends State<_ControllerHost>
+    with SingleTickerProviderStateMixin {
+  late final LoginController controller;
+  @override
+  void initState() {
+    super.initState();
+    controller = widget.create(context, this);
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      Scaffold(body: BottomNavigation(controller: controller));
 }

@@ -14,11 +14,13 @@ import 'package:xml/xml.dart';
 class SelectCareerScreen extends StatefulWidget {
   final List<String> availableSheets;
   final String? excelFilePath;
+  final Map<String, Map<int, List<String>>>? facultyCatalog;
 
   const SelectCareerScreen({
     super.key,
     required this.availableSheets,
     this.excelFilePath,
+    this.facultyCatalog,
   });
 
   @override
@@ -37,15 +39,22 @@ class _SelectCareerScreenState extends State<SelectCareerScreen> {
   }
 
   Future<void> _processExcelFile() async {
-    final bytes = await File(widget.excelFilePath!).readAsBytes();
-
     // Procesa las mismas hojas seleccionadas, independientemente del buscador.
     final selectedSheets = selectedCareerCodes.map((s) => s.trim()).toList();
-    final Map<String, Map<int, List<String>>> filtered =
-        await compute(parseExcelForSheets, {
-      'bytes': bytes,
-      'sheets': selectedSheets,
-    });
+    final catalog = widget.facultyCatalog;
+    final Map<String, Map<int, List<String>>> filtered;
+    if (catalog != null) {
+      filtered = {
+        for (final code in selectedSheets)
+          if (catalog.containsKey(code)) code: catalog[code]!,
+      };
+    } else {
+      final bytes = await File(widget.excelFilePath!).readAsBytes();
+      filtered = await compute(parseExcelForSheets, {
+        'bytes': bytes,
+        'sheets': selectedSheets,
+      });
+    }
 
     if (filtered.isNotEmpty && mounted) {
       Navigator.push(

@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 class OptionsBottomSheet extends StatefulWidget {
   final VoidCallback onExcel;
   final VoidCallback onManual;
+  final VoidCallback? onFaculty;
 
   const OptionsBottomSheet({
     required this.onExcel,
     required this.onManual,
+    this.onFaculty,
     super.key,
   });
 
@@ -35,7 +37,8 @@ class _OptionsBottomSheetState extends State<OptionsBottomSheet> {
         final extraTextHeight =
             (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(0, 28);
         final initialSize =
-            ((480 + extraTextHeight * 12) / constraints.maxHeight)
+            (((widget.onFaculty == null ? 480 : 570) + extraTextHeight * 12) /
+                    constraints.maxHeight)
                 .clamp(.45, .92);
 
         return DraggableScrollableSheet(
@@ -138,12 +141,23 @@ class _OptionsBottomSheetState extends State<OptionsBottomSheet> {
                                 ),
                               ),
                               const SizedBox(height: 22),
+                              if (widget.onFaculty != null) ...[
+                                _OptionCard(
+                                  icon: Icons.school_rounded,
+                                  title: 'Horarios de la facultad',
+                                  description:
+                                      'Elegí tus materias con los horarios publicados por la facultad.',
+                                  emphasized: true,
+                                  onTap: () => _close(widget.onFaculty),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
                               _OptionCard(
                                 icon: Icons.upload_file_rounded,
                                 title: 'Importar desde Excel',
                                 description:
                                     'Cargá el archivo de tu facultad y elegí tus materias.',
-                                emphasized: true,
+                                emphasized: widget.onFaculty == null,
                                 onTap: () => _close(widget.onExcel),
                               ),
                               const SizedBox(height: 12),

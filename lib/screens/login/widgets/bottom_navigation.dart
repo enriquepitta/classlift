@@ -9,72 +9,73 @@ class BottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).height < 740;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Row(
-          children: [
-            Expanded(child: Divider(color: Color(0xFFA6B5D2))),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: Text('O continuá con',
-                  style: TextStyle(color: Color(0xFF7E8EAF), fontSize: 13)),
-            ),
-            Expanded(child: Divider(color: Color(0xFFA6B5D2))),
-          ],
-        ),
-        SizedBox(height: compact ? 10 : 18),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: OutlinedButton.icon(
-            onPressed: controller.signInWithGoogle,
+    return ValueListenableBuilder<LoginProvider?>(
+      valueListenable: controller.activeProvider,
+      builder: (context, active, _) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _button(
+            provider: LoginProvider.google,
+            active: active,
+            label: 'Continuar con Google',
             icon: SvgPicture.asset('assets/icons/google_icon.svg', height: 22),
-            label: const Text('Continuar con Google'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF13234D),
-              backgroundColor: const Color(0x99FFFFFF),
-              side: const BorderSide(color: Color(0xFFD8E1F1), width: 1.3),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              textStyle: const TextStyle(
-                  fontFamily: 'Poppins',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500),
+            onPressed: controller.signInWithGoogle,
+          ),
+          const SizedBox(height: 12),
+          _button(
+            provider: LoginProvider.apple,
+            active: active,
+            label: 'Continuar con Apple',
+            icon: SvgPicture.asset(
+              'assets/icons/apple_icon.svg',
+              height: 22,
+              color: Colors.white,
             ),
+            onPressed: controller.signInWithApple,
           ),
-        ),
-        const SizedBox(height: 6),
-        TextButton(
-          onPressed: controller.toggleRegistering,
-          child: ValueListenableBuilder<bool>(
-            valueListenable: controller.isRegisteringNotifier,
-            builder: (context, isRegistering, _) {
-              return Text.rich(
-                TextSpan(
-                  text: isRegistering
-                      ? '¿Ya tenés una cuenta? '
-                      : '¿No tenés una cuenta? ',
-                  style:
-                      const TextStyle(color: Color(0xFF526797), fontSize: 12),
-                  children: [
-                    TextSpan(
-                      text: isRegistering ? 'Iniciá sesión' : 'Registrate',
-                      style: const TextStyle(
-                          color: Color(0xFF1555DC),
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ],
+        ],
+      ),
+    );
+  }
+
+  Widget _button({
+    required LoginProvider provider,
+    required LoginProvider? active,
+    required String label,
+    required Widget icon,
+    required VoidCallback onPressed,
+  }) {
+    final apple = provider == LoginProvider.apple;
+    return OutlinedButton.icon(
+      onPressed: active == null ? onPressed : null,
+      icon: active == provider
+          ? Semantics(
+              label: 'Iniciando sesión',
+              child: SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: apple ? Colors.white : const Color(0xFF333D86),
                 ),
-                textAlign: TextAlign.center,
-              );
-            },
-          ),
-        ),
-        SizedBox(height: compact ? 0 : 18),
-      ],
+              ),
+            )
+          : icon,
+      label: Text(label, textAlign: TextAlign.center),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(56),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        foregroundColor: apple ? Colors.white : const Color(0xFF13234D),
+        disabledForegroundColor:
+            apple ? Colors.white70 : const Color(0xFF526797),
+        backgroundColor:
+            apple ? const Color(0xFF111111) : const Color(0xDDFFFFFF),
+        side: BorderSide(
+            color: apple ? const Color(0xFF111111) : const Color(0xFFD8E1F1)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        textStyle: const TextStyle(
+            fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w500),
+      ),
     );
   }
 }

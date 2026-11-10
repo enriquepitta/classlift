@@ -60,6 +60,7 @@ class _MoodleLoginScreenState extends State<MoodleLoginScreen> {
   _MoodleProvider _provider = _MoodleProvider.poli;
   bool _loading = false;
   bool _obscure = true;
+  bool _remember = false;
   String? _error;
 
   @override
@@ -150,10 +151,15 @@ class _MoodleLoginScreenState extends State<MoodleLoginScreen> {
       _error = null;
     });
     try {
-      final service = MoodleAuthService(siteUrl: _selectedSiteUrl);
-      final session = await service.signIn(_username.text, _password.text);
-      await MoodleAuthService.instance.persistSession(session);
-      await MoodleTasksService.loadCurrentSession();
+      await MoodleAuthService.instance.connect(_username.text, _password.text,
+          campusUrl: _selectedSiteUrl, remember: _remember);
+      try {
+        await MoodleTasksService.loadCurrentSession();
+      } on MoodleAuthException catch (error) {
+        // Authentication already succeeded. A task/service failure must not
+        // send the user back through the credentials form.
+        if (error.requiresReconnect) rethrow;
+      }
       if (!mounted) return;
       _password.clear();
       context.go('/home');
@@ -378,6 +384,28 @@ class _MoodleLoginScreenState extends State<MoodleLoginScreen> {
           ),
           validator: (value) =>
               value == null || value.isEmpty ? 'Ingresá tu contraseña.' : null,
+        ),
+        const SizedBox(height: 8),
+        Material(
+          color: ClassliftColors.transparent,
+          child: CheckboxListTile(
+            value: _remember,
+            onChanged: _loading
+                ? null
+                : (value) => setState(() => _remember = value ?? false),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: _educaRed,
+            title: const Text('Recordar mi cuenta',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _educaDarkRed)),
+            subtitle: const Text(
+                'Guardá tu acceso de forma segura en este dispositivo para reconectar automáticamente.',
+                style:
+                    TextStyle(fontSize: 11, color: ClassliftColors.educaMuted)),
+          ),
         ),
       ],
     );

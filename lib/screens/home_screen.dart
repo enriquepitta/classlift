@@ -14,6 +14,7 @@ import 'package:classlift/models/database_models.dart';
 import 'package:classlift/services/database_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'select_career.dart';
+import 'faculty_schedule_screen.dart';
 import 'package:classlift/services/moodle_auth_service.dart';
 import 'package:classlift/services/moodle_tasks_service.dart';
 import 'package:classlift/utils/home_subtitle.dart';
@@ -54,8 +55,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (_signingOut) return;
     setState(() => _signingOut = true);
     try {
+      await MoodleAuthService.instance.disconnect();
       await DatabaseService.clearAllData();
-      MoodleAuthService.instance.signOut();
       MoodleTasksService.clearCache();
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
@@ -120,7 +121,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       _loadClassesForSelectedDay();
-      _refreshMoodleTasks();
+      // The tasks future renders the error; lifecycle callbacks must not
+      // produce an unhandled exception when the campus is temporarily offline.
+      _refreshMoodleTasks().catchError((Object _) {});
     }
   }
 
@@ -402,6 +405,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await _startExcelImport();
   }
 
+  Future<void> _startFacultySchedule() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const FacultyScheduleScreen()),
+    );
+    if (mounted) await _loadClassesForSelectedDay();
+  }
+
   void _handleManual() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -581,6 +592,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     ),
                                   if (hasMoodleSession)
                                     PendingTasksSection(
+                                      key: ObjectKey(
+                                          MoodleAuthService.instance.session),
                                       future: tasks,
                                       onRefresh: _refreshMoodleTasks,
                                       onReconnect: _connectMoodle,
@@ -596,6 +609,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                         ),
                                   if (hasMoodleSession)
                                     PendingTasksSection(
+                                      key: ObjectKey(
+                                          MoodleAuthService.instance.session),
                                       future: tasks,
                                       onRefresh: _refreshMoodleTasks,
                                       onReconnect: _connectMoodle,
@@ -635,6 +650,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           builder: (_) => OptionsBottomSheet(
             onExcel: _handleExcel,
             onManual: _handleManual,
+            onFaculty: _startFacultySchedule,
           ),
         ),
       ),
@@ -661,12 +677,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 eyebrow: 'Recomendado',
                 title: 'Configurá tu horario',
                 description:
-                    'Importá el horario de tu facultad y seleccioná las materias que estás cursando.',
-                actionLabel: 'Importar horario',
-                actionIcon: Icons.description_outlined,
+                    'Elegí las materias que cursás con los horarios publicados por la facultad.',
+                actionLabel: 'Ver horarios',
+                actionIcon: Icons.school_outlined,
                 illustrationIcon: Icons.calendar_month_rounded,
                 badgeIcon: Icons.add_rounded,
-                onAction: _startExcelImport,
+                onAction: _startFacultySchedule,
               ),
             ),
           if (showEducaCard) ...[

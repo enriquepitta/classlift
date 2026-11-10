@@ -5,6 +5,18 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  test(
+      'restoring an active session preserves its identity and pending requests',
+      () async {
+    final service = MoodleAuthService()
+      ..session = const MoodleSession(
+          siteUrl: 'https://grado.pol.una.py',
+          token: 'saved-token',
+          userId: 7,
+          fullName: 'Student');
+    final current = service.session;
+    expect(await service.restoreSession(), same(current));
+  });
   test('authenticates and validates the profile before retaining the session',
       () async {
     var calls = 0;

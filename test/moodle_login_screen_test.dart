@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('remembering an account requires an explicit choice',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: MoodleLoginScreen()));
+    final remember = find.byType(CheckboxListTile);
+    expect(tester.widget<CheckboxListTile>(remember).value, isFalse);
+    await tester.ensureVisible(remember);
+    await tester.tap(remember);
+    await tester.pump();
+    expect(tester.widget<CheckboxListTile>(remember).value, isTrue);
+    await tester.tap(remember);
+    await tester.pump();
+    expect(tester.widget<CheckboxListTile>(remember).value, isFalse);
+  });
   testWidgets('Campus selection exposes the custom URL field', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: MoodleLoginScreen()));
     expect(find.text('Politécnica UNA'), findsOneWidget);

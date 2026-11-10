@@ -34,33 +34,60 @@ class MoodleTasksService {
   static ValueListenable<Future<MoodleTasksResult>?> get loadListenable =>
       _loadNotifier;
   static Future<MoodleTasksResult>? get lastLoad => _loadNotifier.value;
+  static MoodleSession? _loadingSession;
+  static Future<MoodleTasksResult>? _inFlight;
+  static MoodleSession? _cachedSession;
 
   final MoodleAuthService auth;
   MoodleTasksService({MoodleAuthService? auth})
       : auth = auth ?? MoodleAuthService.instance;
 
   Future<MoodleTasksResult> load() async {
-    final session = auth.session;
+    var session = auth.session;
     if (session == null) {
       throw const MoodleAuthException(
         'Iniciá sesión con Moodle para ver tus tareas.',
         requiresReconnect: true,
       );
     }
-    late final Map<String, dynamic> response;
-    try {
-      response = await auth.call('mod_assign_get_assignments');
-    } on MoodleAuthException catch (error) {
-      if (error.requiresReconnect) {
+    for (var attempt = 0;; attempt++) {
+      try {
+        return await _loadTasks(session!);
+      } on MoodleAuthException catch (error) {
+        if (!error.requiresReconnect || !identical(session, auth.session)) {
+          rethrow;
+        }
+        var failure = error;
+        if (attempt == 0) {
+          try {
+            final renewed = await auth.renewSession(session!);
+            if (renewed != null) {
+              session = renewed;
+              continue;
+            }
+          } on MoodleAuthException catch (renewalError) {
+            if (!renewalError.requiresReconnect) rethrow;
+            failure = renewalError;
+          }
+        }
+        if (!identical(session, auth.session)) throw failure;
         if (identical(auth, MoodleAuthService.instance)) {
           await auth.forgetPersistedSession();
         } else {
           auth.signOut();
         }
-        clearCache();
+        if (auth.session == null &&
+            (identical(_cachedSession, session) ||
+                identical(_loadingSession, session))) {
+          clearCache();
+        }
+        throw failure;
       }
-      rethrow;
     }
+  }
+
+  Future<MoodleTasksResult> _loadTasks(MoodleSession session) async {
+    final response = await auth.call('mod_assign_get_assignments');
     if (response['courses'] is! List) {
       throw const MoodleAuthException('No se pudo leer la lista de tareas.');
     }
@@ -90,7 +117,8 @@ class MoodleTasksService {
             incomplete = true;
             status = null;
           }
-        } on MoodleAuthException {
+        } on MoodleAuthException catch (error) {
+          if (error.requiresReconnect) rethrow;
           incomplete = true;
         }
         final task = MoodleTask.fromJson(
@@ -112,22 +140,42 @@ class MoodleTasksService {
       return a.dueDate!.compareTo(b.dueDate!);
     });
     final result = MoodleTasksResult(tasks, incomplete: incomplete);
-    if (identical(session, auth.session)) lastResult = result;
+    if (identical(session, auth.session)) {
+      _cachedSession = session;
+      lastResult = result;
+    }
     return result;
   }
 
   static Future<MoodleTasksResult>? loadCurrentSession() {
-    if (MoodleAuthService.instance.session == null) {
-      lastResult = null;
-      _loadNotifier.value = null;
+    final session = MoodleAuthService.instance.session;
+    if (session == null) {
+      clearCache();
       return null;
     }
-    _loadNotifier.value = MoodleTasksService().load();
-    return lastLoad;
+    if (identical(session, _loadingSession) && _inFlight != null) {
+      return _inFlight;
+    }
+    if (!identical(session, _cachedSession)) lastResult = null;
+    _loadingSession = session;
+    final load = MoodleTasksService().load();
+    _inFlight = load;
+    // Lifecycle refreshes may have no awaiting caller. Observe failures while
+    // leaving the original future available to the UI and manual refreshes.
+    load.then((_) {
+      if (identical(_inFlight, load)) _inFlight = null;
+    }, onError: (Object _, StackTrace __) {
+      if (identical(_inFlight, load)) _inFlight = null;
+    });
+    _loadNotifier.value = load;
+    return load;
   }
 
   static void clearCache() {
     lastResult = null;
+    _cachedSession = null;
+    _loadingSession = null;
+    _inFlight = null;
     _loadNotifier.value = null;
   }
 }
