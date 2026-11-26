@@ -1,0 +1,23 @@
+Política de privacidad de ClassLift
+Actualizada el 23 de noviembre de 2026
+
+Responsable
+Enrique Pitta, desarrollador de ClassLift.
+
+Tu cuenta
+ClassLift utiliza Firebase Authentication para iniciar sesión con Google o Apple. Procesa el identificador de tu cuenta y el nombre, correo y foto de perfil que el proveedor comparta. Estos datos permiten reconocer tu cuenta y mostrar tu perfil. No recibimos tu contraseña de Google o Apple.
+
+Tu planificación
+Las materias, horarios, evaluaciones y preferencias se guardan en este dispositivo, separadas por cuenta. No se sincronizan ni se respaldan en un servidor de ClassLift. Cerrar sesión conserva tu planificación para cuando vuelvas con la misma cuenta en este dispositivo. Desinstalar la app o borrar sus datos puede eliminarla.
+
+Tu campus Moodle
+Conectar el campus es opcional. Tu usuario y contraseña se envían mediante HTTPS al campus que elegís para obtener acceso a tu perfil y tus tareas. El token de acceso se guarda en el almacenamiento seguro del sistema. La contraseña sólo se guarda allí si activás la opción de recordar la cuenta. Las tareas se mantienen en memoria mientras usás la app. Cerrar sesión elimina los datos de acceso a Moodle guardados por ClassLift en este dispositivo. No elimina tu cuenta ni tus entregas en el campus.
+
+Horarios públicos y proveedores
+ClassLift consulta en Supabase los horarios publicados por la facultad y guarda copias locales para su consulta. Las conexiones con Firebase, Google, Apple, Supabase y tu campus incluyen datos técnicos necesarios para responder, como la dirección IP. Cada proveedor administra sus servicios según sus propias políticas. ClassLift no incluye publicidad, rastreo publicitario ni herramientas de analítica de uso.
+
+Conservación y eliminación
+Tu cuenta de ClassLift se conserva hasta que la elimines. Desde Mi cuenta → Eliminar cuenta podés iniciar el borrado de tu cuenta en Firebase y de la planificación y credenciales locales de este dispositivo. Se te pedirá verificar tu identidad; si usaste Apple se revoca su autorización. La eliminación no borra tus cuentas de Google, Apple o Moodle ni los datos que tu facultad guarda. La planificación de otras instalaciones no se borra a distancia: podés quitarla borrando los datos de la app o desinstalándola en esos dispositivos. Cerrá sesión en esas instalaciones para eliminar sus accesos al campus; el almacenamiento seguro del sistema puede conservar credenciales después de una desinstalación.
+
+Tus controles
+Podés usar los horarios sin conectar Moodle y elegir no recordar su contraseña. Podés cerrar sesión o eliminar tu cuenta desde Mi cuenta. Revisá el campus seleccionado antes de ingresar tus credenciales. No compartas contraseñas ni tokens con otras personas.

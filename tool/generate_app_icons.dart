@@ -1,80 +1,120 @@
-// Regenerate launcher assets with: flutter test tool/generate_app_icons.dart
+// Regenerate with: flutter test --no-test-assets tool/generate_app_icons.dart
 // Uses the existing Flutter renderer; no extra image libraries are required.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+enum IconStyle {
+  square(opaque: true),
+  rounded,
+  // Android draws 108dp layers through a 72dp visible mask.
+  adaptive(imageScale: 76 / 108, opaque: true),
+  monochrome(imageScale: 76 / 108);
+
+  const IconStyle({
+    this.imageScale = 1,
+    this.opaque = false,
+  });
+
+  final double imageScale;
+  final bool opaque;
+}
+
 void main() {
-  testWidgets('Generate launcher icons from the ClassLift mark',
+  testWidgets('Generate launcher icons from the ClassLift artwork',
       (tester) async {
     await tester.runAsync(() async {
-      final source =
-          await File('assets/icons/classlift_mark.svg').readAsString();
-      final square = source
-          .replaceFirst(
-              '<rect x="1" y="1" width="126" height="126" rx="34" fill="url(#tile)"/>',
-              '<rect width="128" height="128" fill="url(#tile)"/>')
-          .replaceFirst(RegExp(r'<rect[^>]+fill="none"[^>]+/>'), '');
-      final maskable = square
-          .replaceFirst('<path d="M26',
-              '<g transform="translate(12.8 12.8) scale(0.8)"><path d="M26')
-          .replaceFirst('</svg>', '</g></svg>');
-      final variants = {
-        'rounded': await svg.fromSvgString(source, 'rounded'),
-        'square': await svg.fromSvgString(square, 'square'),
-        'maskable': await svg.fromSvgString(maskable, 'maskable'),
-      };
-      final cache = <String, Uint8List>{};
-      Future<Uint8List> render(String variant, int size,
-          {bool opaque = false}) async {
-        final key = '$variant-$size-$opaque';
-        if (cache.containsKey(key)) return cache[key]!;
-        final root = variants[variant]!;
+      final codec = await ui.instantiateImageCodec(
+        await File('tool/classlift_app_icon.jpg').readAsBytes(),
+      );
+      final source = (await codec.getNextFrame()).image;
+      codec.dispose();
+      addTearDown(source.dispose);
+      expect(source.width, source.height);
+      final coloredSource = await _useCalendarBlue(source);
+      addTearDown(coloredSource.dispose);
+
+      final cache = <(IconStyle, int), Uint8List>{};
+      Future<Uint8List> render(IconStyle style, int size) async {
+        final key = (style, size);
+        final cached = cache[key];
+        if (cached != null) return cached;
+
+        final side = size.toDouble();
+        final bounds = ui.Offset.zero & ui.Size.square(side);
+        final imageSide = side * style.imageScale;
+        final scale = imageSide / source.width;
+        final inset = (side - imageSide) / 2;
+        // Extend the edge pixels into the margins used by adaptive masks.
+        final shader = ui.ImageShader(
+          style == IconStyle.monochrome ? source : coloredSource,
+          ui.TileMode.clamp,
+          ui.TileMode.clamp,
+          Float64List(16)
+            ..[0] = scale
+            ..[5] = scale
+            ..[10] = 1
+            ..[12] = inset
+            ..[13] = inset
+            ..[15] = 1,
+          filterQuality: ui.FilterQuality.high,
+        );
+        final paint = ui.Paint()..shader = shader;
+        if (style == IconStyle.monochrome) {
+          // Both letters have a low red channel against the pale artwork.
+          // Turn that contrast into an alpha mask for Android's themed icon.
+          paint.colorFilter = const ui.ColorFilter.matrix([
+            0, 0, 0, 0, 255, // Red
+            0, 0, 0, 0, 255, // Green
+            0, 0, 0, 0, 255, // Blue
+            -3, 0, 0, 0, 510, // Alpha
+          ]);
+        }
+
         final recorder = ui.PictureRecorder();
-        // The recording bounds must match the output, including 1024px icons.
-        final canvas = ui.Canvas(
-            recorder, ui.Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
-        root.scaleCanvasToViewBox(canvas, ui.Size.square(size.toDouble()));
-        root.draw(canvas, root.viewport.viewBoxRect);
+        final canvas = ui.Canvas(recorder, bounds);
+        if (style == IconStyle.rounded) {
+          canvas.clipRRect(
+            ui.RRect.fromRectAndRadius(bounds, ui.Radius.circular(side * 0.24)),
+          );
+        }
+        canvas.drawRect(bounds, paint);
         final picture = recorder.endRecording();
         final image = await picture.toImage(size, size);
         final data =
             await image.toByteData(format: ui.ImageByteFormat.rawStraightRgba);
-        final bytes =
-            encodePng(data!.buffer.asUint8List(), size, opaque: opaque);
         image.dispose();
         picture.dispose();
-        return cache[key] = bytes;
+        shader.dispose();
+        return cache[key] = encodePng(
+          data!.buffer.asUint8List(),
+          size,
+          opaque: style.opaque,
+        );
       }
 
-      Future<void> save(String path, String variant, int size,
-          {bool opaque = false}) async {
-        await File(path)
-            .writeAsBytes(await render(variant, size, opaque: opaque));
+      Future<void> save(String path, IconStyle style, int size) async {
+        final file = File(path);
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(await render(style, size));
       }
 
-      for (final catalog in [
-        'ios/Runner/Assets.xcassets/AppIcon.appiconset',
-        'macos/Runner/Assets.xcassets/AppIcon.appiconset'
-      ]) {
-        final contents =
-            jsonDecode(await File('$catalog/Contents.json').readAsString())
-                as Map<String, dynamic>;
-        for (final entry in contents['images'] as List) {
-          final size = (double.parse(
-                      (entry['size'] as String).split('x').first) *
-                  double.parse((entry['scale'] as String).replaceAll('x', '')))
-              .round();
-          final isIos = catalog.startsWith('ios/');
-          await save('$catalog/${entry['filename']}',
-              isIos ? 'square' : 'rounded', size,
-              opaque: isIos);
-        }
+      const iosCatalog = 'ios/Runner/Assets.xcassets/AppIcon.appiconset';
+      final contents =
+          jsonDecode(await File('$iosCatalog/Contents.json').readAsString())
+              as Map<String, dynamic>;
+      for (final entry in contents['images'] as List) {
+        final points = double.parse((entry['size'] as String).split('x').first);
+        final scale = int.parse((entry['scale'] as String).replaceAll('x', ''));
+        final size = (points * scale).round();
+        await save('$iosCatalog/${entry['filename']}', IconStyle.square, size);
       }
+      const androidResources = 'android/app/src/main/res';
       for (final density in {
         'mdpi': 48,
         'hdpi': 72,
@@ -82,45 +122,66 @@ void main() {
         'xxhdpi': 144,
         'xxxhdpi': 192
       }.entries) {
-        await save(
-            'android/app/src/main/res/mipmap-${density.key}/ic_launcher.png',
-            'rounded',
-            density.value);
+        await save('$androidResources/mipmap-${density.key}/ic_launcher.png',
+            IconStyle.rounded, density.value);
       }
-      for (final size in [192, 512]) {
-        await save('web/icons/Icon-$size.png', 'rounded', size);
-        await save('web/icons/Icon-maskable-$size.png', 'maskable', size,
-            opaque: true);
+      await save('$androidResources/drawable-nodpi/ic_launcher_background.png',
+          IconStyle.adaptive, 432);
+      await save('$androidResources/drawable-nodpi/ic_launcher_monochrome.png',
+          IconStyle.monochrome, 432);
+
+      const splashSize = 144;
+      const iosLaunchImages = 'ios/Runner/Assets.xcassets/LaunchImage.imageset';
+      for (final scale in [1, 2, 3]) {
+        final suffix = scale == 1 ? '' : '@${scale}x';
+        await save('$iosLaunchImages/LaunchImage$suffix.png', IconStyle.rounded,
+            splashSize * scale);
       }
-      await save('web/favicon.png', 'rounded', 32);
-      final icoSizes = [16, 24, 32, 48, 64, 128, 256];
-      final frames = <Uint8List>[];
-      for (final size in icoSizes) {
-        frames.add(await render('rounded', size));
-      }
-      final header = ByteData(6 + 16 * frames.length)
-        ..setUint16(2, 1, Endian.little)
-        ..setUint16(4, frames.length, Endian.little);
-      var offset = header.lengthInBytes;
-      for (var i = 0; i < frames.length; i++) {
-        final base = 6 + 16 * i;
-        header.setUint8(base, icoSizes[i] % 256);
-        header.setUint8(base + 1, icoSizes[i] % 256);
-        header.setUint16(base + 4, 1, Endian.little);
-        header.setUint16(base + 6, 32, Endian.little);
-        header.setUint32(base + 8, frames[i].length, Endian.little);
-        header.setUint32(base + 12, offset, Endian.little);
-        offset += frames[i].length;
-      }
-      await File('windows/runner/resources/app_icon.ico').writeAsBytes([
-        ...header.buffer.asUint8List(),
-        for (final frame in frames) ...frame,
-      ]);
+      await save('$androidResources/drawable-xxhdpi/launch_image.png',
+          IconStyle.rounded, splashSize * 3);
+      await save('assets/images/classlift_splash.png', IconStyle.rounded,
+          splashSize * 3);
     });
   });
 }
 
-/// Encode RGB for iOS (no alpha channel), RGBA for transparent desktop icons.
+Future<ui.Image> _useCalendarBlue(ui.Image source) async {
+  final data =
+      await source.toByteData(format: ui.ImageByteFormat.rawStraightRgba);
+  final rgba = data!.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  final calendarBlue = ClassliftColors.calendarSurface.toARGB32();
+  final replacement = [
+    for (final shift in [16, 8, 0]) calendarBlue >> shift & 255
+  ];
+  const original = [1, 89, 242];
+
+  for (var pixel = 0; pixel < rgba.length; pixel += 4) {
+    // The electric-blue L has much higher blue–green contrast than the
+    // navy C and the pale wave. Partial coverage keeps its edges smooth.
+    final chroma = rgba[pixel + 2] - rgba[pixel + 1];
+    if (chroma <= 54) continue;
+    final coverage = ((chroma - 54) / (150 - 54)).clamp(0.0, 1.0);
+    for (var channel = 0; channel < replacement.length; channel++) {
+      final index = pixel + channel;
+      final shift = (replacement[channel] - original[channel]) * coverage;
+      rgba[index] = coverage == 1
+          ? replacement[channel]
+          : (rgba[index] + shift).round().clamp(0, 255);
+    }
+  }
+
+  final image = Completer<ui.Image>();
+  ui.decodeImageFromPixels(
+    rgba,
+    source.width,
+    source.height,
+    ui.PixelFormat.rgba8888,
+    image.complete,
+  );
+  return image.future;
+}
+
+/// Encode RGB for opaque icons and RGBA for artwork with transparency.
 Uint8List encodePng(Uint8List rgba, int size, {required bool opaque}) {
   final channels = opaque ? 3 : 4;
   final rows = Uint8List(size * (1 + size * channels));

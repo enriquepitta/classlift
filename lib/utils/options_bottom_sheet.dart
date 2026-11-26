@@ -6,12 +6,10 @@ import 'package:flutter/material.dart';
 
 class OptionsBottomSheet extends StatefulWidget {
   final VoidCallback onExcel;
-  final VoidCallback onManual;
   final VoidCallback? onFaculty;
 
   const OptionsBottomSheet({
     required this.onExcel,
-    required this.onManual,
     this.onFaculty,
     super.key,
   });
@@ -37,7 +35,7 @@ class _OptionsBottomSheetState extends State<OptionsBottomSheet> {
         final extraTextHeight =
             (MediaQuery.textScalerOf(context).scale(14) - 14).clamp(0, 28);
         final initialSize =
-            (((widget.onFaculty == null ? 480 : 570) + extraTextHeight * 12) /
+            (((widget.onFaculty == null ? 390 : 480) + extraTextHeight * 12) /
                     constraints.maxHeight)
                 .clamp(.45, .92);
 
@@ -160,14 +158,6 @@ class _OptionsBottomSheetState extends State<OptionsBottomSheet> {
                                 emphasized: widget.onFaculty == null,
                                 onTap: () => _close(widget.onExcel),
                               ),
-                              const SizedBox(height: 12),
-                              _OptionCard(
-                                icon: Icons.edit_calendar_outlined,
-                                title: 'Agregar manualmente',
-                                description: 'Creá tus clases una por una.',
-                                badge: 'Próximamente',
-                                onTap: () => _close(widget.onManual),
-                              ),
                             ],
                           ),
                         ),
@@ -242,7 +232,6 @@ class _OptionCard extends StatelessWidget {
   final String description;
   final VoidCallback onTap;
   final bool emphasized;
-  final String? badge;
 
   const _OptionCard({
     required this.icon,
@@ -250,7 +239,6 @@ class _OptionCard extends StatelessWidget {
     required this.description,
     required this.onTap,
     this.emphasized = false,
-    this.badge,
   });
 
   @override
@@ -309,10 +297,6 @@ class _OptionCard extends StatelessWidget {
                           fontSize: 12,
                           height: 1.45,
                         )),
-                    if (badge != null) ...[
-                      const SizedBox(height: 8),
-                      SelectionBadge(label: badge!),
-                    ],
                   ],
                 ),
               ),

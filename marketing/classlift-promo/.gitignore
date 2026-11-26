@@ -1,0 +1,8 @@
+.hyperframes/
+.thumbnails/
+node_modules/
+*.log
+lint-result.json
+check-result.json
+snapshot-review.json
+*.mp4

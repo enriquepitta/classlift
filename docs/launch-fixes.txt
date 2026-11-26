@@ -1,0 +1,77 @@
+ClassLift — correcciones de prioridades altas
+23 de noviembre de 2026
+
+Implementado
+1. Cerrar sesión conserva materias, horarios, evaluaciones y preferencias.
+   La base local y los secretos de Moodle están separados por UID de Firebase.
+   La migración de la base antigua sólo se asigna a la cuenta ya autenticada al
+   actualizar; un nuevo ingreso no recibe datos que podrían ser de otra persona.
+2. Añadir materias mantiene las selecciones anteriores. Repetir una selección
+   actualiza sólo sus horarios/evaluaciones dentro de una transacción.
+3. El token de Moodle se guarda en almacenamiento seguro. La migración escribe
+   primero el secreto y después elimina/vacía su copia antigua en SQLite.
+   Desconectar o cerrar sesión elimina secretos y conserva la planificación.
+4. Mi cuenta ofrece eliminación con confirmación y reautenticación Google/Apple.
+   Apple revoca su autorización. Se borra Firebase antes de la planificación local;
+   una constancia segura permite terminar el borrado local si se interrumpe.
+   Cancelar la verificación o fallar el borrado remoto no borra la planificación.
+5. La política de privacidad está disponible desde el ingreso y Mi cuenta.
+   Su texto para futura publicación está en docs/privacy-policy.txt.
+6. Se retiraron Horario, Más y la carga manual de las opciones visibles del MVP,
+   porque no tenían una implementación utilizable.
+7. Android dejó de usar la firma debug para release. Se configuraron versiones
+   compatibles con el Flutter instalado y un script que selecciona JDK 17/21
+   sin modificar la configuración global. Se reemplazó el plugin antiguo de
+   teclado por la información de MediaQuery de Flutter. Ver docs/android-release.txt.
+8. El arranque informa un fallo de preparación y permite reintentar; la carga
+   de planificación captura errores para no dejar un indicador permanente.
+9. La prueba física descubrió que PRAGMA secure_delete debía usar rawQuery en
+   sqflite Darwin. Se corrigieron el cierre de sesión y la limpieza de cuenta,
+   y se añadió una regresión con SQLite/Keychain reales de iOS.
+   También se unificó el nombre del sistema/OAuth como ClassLift en Info.plist.
+10. Se alinearon los metadatos iOS auxiliares de Firebase con el plist nativo real
+    (proyecto claift, bundle com.pitta.classlift). Analizador y consistencia pasan.
+
+Validación
+- flutter test --no-pub --concurrency=2: 123 pruebas pasan, 1 omitida.
+  La omitida depende de un Excel original que no existe en la ruta local del test.
+- Pruebas nuevas con SQLite real y almacenamiento seguro simulado: conservación,
+  aislamiento, idempotencia, rollback, migración y borrado de secretos.
+- Pruebas de cuentas con Firebase simulado: reautenticación, cancelación, fallo
+  remoto, revocación Apple y recuperación después de una interrupción.
+- Build iOS de simulador correcta con Xcode Beta. Inicio y apertura de privacidad
+  comprobados en iPhone 18 Pro simulado; captura 05-privacy-fixed.jpg.
+- Dos pruebas de integración nativa pasan en iOS 27.0: migración a Keychain,
+  desconexión conservando planificación y borrado aislado entre cuentas locales.
+- Release 1.0.0 (2026112301) instalada y lanzamiento confirmado en el iPhone de
+  Enrique. Archive y exportación Ad Hoc también válidos. Ver el alcance y las
+  verificaciones físicas todavía pendientes en docs/ios-qa-2026-11-23.txt.
+- Prueba física de la corrección: cierre conserva exactamente las 9 materias,
+  13 horarios y 54 evaluaciones; reingreso Google correcto; borrado autorizado
+  elimina la base local y vuelve al ingreso incluso tras reiniciar la app.
+- Apple: ingreso real correcto y borrado autorizado de la cuenta vacía aprobado.
+  El flujo de revocación termina antes de borrar Firebase; consulta administrativa
+  confirma el UID ausente, el contenedor ya no tiene bases ClassLift y un reinicio
+  vuelve al ingreso. Google también tiene su eliminación confirmada en Firebase.
+- flutter analyze: sin errores; persisten advertencias/deprecaciones del proyecto.
+- bash tool/android_gradle.sh help: configuración Android válida con JDK 17.
+  bundleRelease --dry-run alcanza el control de firma y se detiene con el error
+  esperado de key.properties ausente, sin recurrir a la clave de depuración.
+  La generación y firma del AAB siguen pendientes de las credenciales de release.
+
+Pendiente para cerrar la preparación del lanzamiento
+- Definir correo de soporte, revisar los datos del responsable y publicar la URL
+  pública de privacidad. El usuario indicó que todavía no tiene esos recursos.
+- Para Google Play, publicar también el recurso web de solicitud de eliminación.
+- Completar una prueba autenticada de Moodle; hasta ahora sólo se comprobó la
+  disponibilidad HTTPS del servicio y las pruebas de almacenamiento de secretos.
+- Configurar firma de distribución y OAuth Android, producir AAB y validarlo en
+  una pista interna. No hay android/key.properties y el JSON actual no contiene
+  clientes OAuth. No se creó una clave de otra app ni se publicó una entrega.
+- Validar el archivo iOS firmado en TestFlight y completar los metadatos de tienda.
+
+Se borró la cuenta real de ClassLift autorizada expresamente por el usuario,
+mediante la app y con reautenticación Google. También se configuró Authentication
+Apple en el backend con autorización expresa y se borró la cuenta vacía Apple
+con confirmación específica del usuario. No se desplegaron funciones.
+Estas correcciones no equivalen a una aprobación de las tiendas.

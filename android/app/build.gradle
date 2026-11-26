@@ -8,6 +8,22 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// The signing properties file is ignored by Git; never commit credentials.
+def releaseKeys = new Properties()
+def releaseKeysFile = rootProject.file("key.properties")
+if (releaseKeysFile.exists()) {
+    releaseKeysFile.withInputStream { releaseKeys.load(it) }
+}
+def hasReleaseKeys = ["storeFile", "storePassword", "keyAlias", "keyPassword"].every {
+    releaseKeys.getProperty(it)?.trim()
+}
+
+gradle.taskGraph.whenReady { graph ->
+    if (graph.allTasks.any { it.project == project && it.name.toLowerCase().contains("release") } && !hasReleaseKeys) {
+        throw new GradleException("Falta android/key.properties con la firma de distribución. No se permite firmar release con la clave de depuración. Ver docs/android-release.txt.")
+    }
+}
+
 android {
     namespace = "com.pitta.classlift"
     compileSdk = flutter.compileSdkVersion
@@ -33,11 +49,20 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        release {
+            if (hasReleaseKeys) {
+                storeFile = rootProject.file(releaseKeys.getProperty("storeFile"))
+                storePassword = releaseKeys.getProperty("storePassword")
+                keyAlias = releaseKeys.getProperty("keyAlias")
+                keyPassword = releaseKeys.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release
         }
     }
 }

@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 Future<void> openOptions(
   WidgetTester tester, {
   required VoidCallback onExcel,
-  required VoidCallback onManual,
   VoidCallback? onFaculty,
   Size size = const Size(390, 844),
   double textScale = 1,
@@ -15,124 +14,73 @@ Future<void> openOptions(
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(MaterialApp(
-    theme: ThemeData(fontFamily: 'Poppins'),
     builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: TextScaler.linear(textScale),
-      ),
+      data: MediaQuery.of(context)
+          .copyWith(textScaler: TextScaler.linear(textScale)),
       child: child!,
     ),
-    home: Builder(builder: (context) {
-      return Scaffold(
-        body: TextButton(
-          onPressed: () => showModalBottomSheet<void>(
-            context: context,
-            useSafeArea: true,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => OptionsBottomSheet(
-              onExcel: onExcel,
-              onManual: onManual,
-              onFaculty: onFaculty,
-            ),
-          ),
-          child: const Text('Abrir opciones'),
-        ),
-      );
-    }),
+    home: Builder(
+        builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  useSafeArea: true,
+                  isScrollControlled: true,
+                  builder: (_) => OptionsBottomSheet(
+                      onExcel: onExcel, onFaculty: onFaculty),
+                ),
+                child: const Text('Abrir opciones'),
+              ),
+            )),
   ));
   await tester.tap(find.text('Abrir opciones'));
   await tester.pumpAndSettle();
 }
 
 void main() {
-  testWidgets('opens the faculty schedule option once', (tester) async {
-    var calls = 0;
-    await openOptions(tester,
-        onExcel: () {}, onManual: () {}, onFaculty: () => calls++);
-    await tester.tap(find.text('Horarios de la facultad'));
-    await tester.pumpAndSettle();
-    expect(calls, 1);
-    expect(find.byType(OptionsBottomSheet), findsNothing);
-  });
-
-  testWidgets('all schedule choices remain reachable with large text',
-      (tester) async {
-    await openOptions(tester,
-        onExcel: () {},
-        onManual: () {},
-        onFaculty: () {},
-        size: const Size(320, 568),
-        textScale: 1.6);
-    final manual = find.text('Agregar manualmente');
-    await tester.scrollUntilVisible(manual, 120,
-        scrollable: find.descendant(
-            of: find.byType(OptionsBottomSheet),
-            matching: find.byType(Scrollable)));
-    expect(manual, findsOneWidget);
-    expect(find.text('Cancelar').hitTestable(), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  for (final manual in [false, true]) {
-    testWidgets('${manual ? 'manual' : 'Excel'} closes once before its action',
+  for (final faculty in [false, true]) {
+    testWidgets(
+        '${faculty ? 'faculty' : 'Excel'} closes once before its action',
         (tester) async {
-      var excelCalls = 0;
-      var manualCalls = 0;
+      var calls = 0;
       await openOptions(tester,
-          onExcel: () => excelCalls++, onManual: () => manualCalls++);
-      final option =
-          find.text(manual ? 'Agregar manualmente' : 'Importar desde Excel');
+          onExcel: () => calls++, onFaculty: faculty ? () => calls++ : null);
+      expect(find.text('Agregar manualmente'), findsNothing);
+      expect(find.text('Próximamente'), findsNothing);
+      final option = find
+          .text(faculty ? 'Horarios de la facultad' : 'Importar desde Excel');
       await tester.ensureVisible(option);
+      final point = tester.getCenter(option);
+      await tester.tapAt(point);
+      await tester.tapAt(point);
       await tester.pumpAndSettle();
-      final position = tester.getCenter(option);
-      await tester.tapAt(position);
-      await tester.tapAt(position);
-      await tester.pumpAndSettle();
-      expect(excelCalls, manual ? 0 : 1);
-      expect(manualCalls, manual ? 1 : 0);
+      expect(calls, 1);
       expect(find.byType(OptionsBottomSheet), findsNothing);
-      expect(find.text('Abrir opciones'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }
 
-  testWidgets('close and cancel dismiss without running actions',
+  testWidgets('large text keeps supported options and cancel reachable',
       (tester) async {
-    var calls = 0;
-    await openOptions(tester, onExcel: () => calls++, onManual: () => calls++);
-    await tester.tap(find.byTooltip('Cerrar opciones'));
-    await tester.pumpAndSettle();
-    expect(find.byType(OptionsBottomSheet), findsNothing);
-    await tester.tap(find.text('Abrir opciones'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancelar'));
-    await tester.pumpAndSettle();
-    expect(find.byType(OptionsBottomSheet), findsNothing);
-    expect(calls, 0);
-  });
-
-  testWidgets('large text on a compact screen keeps both options accessible',
-      (tester) async {
-    var manualCalls = 0;
     await openOptions(tester,
         onExcel: () {},
-        onManual: () => manualCalls++,
+        onFaculty: () {},
         size: const Size(320, 568),
-        textScale: 1.6);
-    expect(find.text('Cancelar').hitTestable(), findsOneWidget);
-    final manual = find.text('Agregar manualmente');
-    await tester.scrollUntilVisible(manual, 120,
+        textScale: 2);
+    final excel = find.text('Importar desde Excel');
+    await tester.scrollUntilVisible(excel, 100,
         scrollable: find.descendant(
             of: find.byType(OptionsBottomSheet),
             matching: find.byType(Scrollable)));
-    await tester.ensureVisible(manual);
-    await tester.pumpAndSettle();
-    expect(find.text('Próximamente'), findsOneWidget);
-    await tester.tap(manual);
-    await tester.pumpAndSettle();
-    expect(manualCalls, 1);
-    expect(find.byType(OptionsBottomSheet), findsNothing);
+    expect(excel, findsOneWidget);
+    expect(find.text('Cancelar').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('cancel dismisses without running an action', (tester) async {
+    await openOptions(tester, onExcel: () => fail('Must not import'));
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.byType(OptionsBottomSheet), findsNothing);
   });
 }

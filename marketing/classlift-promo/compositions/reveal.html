@@ -1,0 +1,40 @@
+<!-- ClassLift composition. Real UI captured from Flutter; fixtures are fictional. -->
+<template>
+<style>@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-Regular.ttf');font-weight:400}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-SemiBold.ttf');font-weight:600}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-ExtraBold.ttf');font-weight:800}
+*{box-sizing:border-box}#root{position:absolute;inset:0;overflow:hidden;font-family:Poppins;color:#333D86}
+.stage{position:absolute;inset:0}.title{position:absolute;left:145px;top:326px;width:650px;margin:0;font-size:84px;line-height:1.12;font-weight:800;letter-spacing:-4px}
+.note{position:absolute;left:145px;top:1195px;font-size:28px;font-weight:400;line-height:1.3;margin:0;color:#495780}
+.decoration{position:absolute;pointer-events:none}.rule{left:145px;top:275px;width:80px;height:9px;background:#333D86}
+.screen{position:absolute;left:145px;top:570px;width:630px;height:600px;overflow:hidden;border-radius:28px;box-shadow:0 22px 52px #28366520;background:#fff}
+.screen img{position:absolute;left:0;top:0;width:630px;height:auto;transform-origin:0 0}
+.tap{position:absolute;width:70px;height:70px;border:5px solid #FF6F61;border-radius:50%;opacity:0}
+
+
+#root{background:#333D86;color:#fff}#reveal-sweep{inset:0;background:#FFE9E4;transform-origin:100% 50%}
+.title{top:485px;font-size:100px;line-height:1.13;letter-spacing:-5px}#reveal-name{position:absolute;left:150px;top:820px;margin:0;font-size:48px;font-weight:600;color:#BBD9FF}
+.reveal-stair{background:#4F65B0;left:140px;top:1390px;width:200px;height:400px}.stair2{left:340px;top:1310px;height:480px}.stair3{left:540px;top:1230px;height:560px}
+</style>
+<div id="root" data-composition-id="reveal" data-width="1080" data-height="1920">
+  <div id="reveal-stage" class="clip stage" data-start="0" data-duration="3" data-track-index="0">
+  
+<div id="reveal-sweep" class="decoration"></div>
+<div class="decoration reveal-stair stair1"></div><div class="decoration reveal-stair stair2"></div><div class="decoration reveal-stair stair3"></div>
+<div id="reveal-copy"><h1 class="title">Ordená<br>tu semana.</h1><p id="reveal-name">Con ClassLift.</p></div>
+
+  </div>
+</div>
+<script>
+(function(){
+  const tl = gsap.timeline({paused:true});
+  
+tl.fromTo('#reveal-sweep',{scaleX:1},{scaleX:0,duration:.45,ease:'power4.inOut'},0);
+tl.fromTo('#reveal-copy',{y:85,opacity:0},{y:0,opacity:1,duration:.5,ease:'power3.out'},.15);
+tl.fromTo('.reveal-stair',{y:600},{y:0,duration:.65,stagger:.10,ease:'power3.out'},.55);
+
+  window.__timelines=window.__timelines||{};
+  window.__timelines['reveal']=tl;
+})();
+</script>
+</template>

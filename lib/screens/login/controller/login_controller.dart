@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../router/app_routes.dart';
 import '../utils/error_bottom_sheet.dart';
+import '../../../services/account_service.dart';
+import '../../../services/social_auth_service.dart';
 
 enum LoginProvider { google, apple }
 
@@ -14,7 +16,6 @@ class LoginController {
   final Future<void> Function()? _appleOperation;
   final VoidCallback? _onSignedIn;
   final activeProvider = ValueNotifier<LoginProvider?>(null);
-  bool _googleSignInInitialized = false;
   bool _disposed = false;
   late final AnimationController _titleAnimationController;
   late final Animation<double> titleAnimation;
@@ -50,17 +51,8 @@ class LoginController {
       await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
       return;
     }
-    if (!_googleSignInInitialized) {
-      await GoogleSignIn.instance.initialize();
-      _googleSignInInitialized = true;
-    }
-    final googleUser = await GoogleSignIn.instance.authenticate();
-    final idToken = googleUser.authentication.idToken;
-    if (idToken == null) {
-      throw FirebaseAuthException(code: 'invalid-credential');
-    }
     await FirebaseAuth.instance.signInWithCredential(
-      GoogleAuthProvider.credential(idToken: idToken),
+      await SocialAuthService.googleCredential(),
     );
   }
 
@@ -85,6 +77,8 @@ class LoginController {
       if (_onSignedIn != null) {
         _onSignedIn();
       } else {
+        await AccountService.instance.prepareCurrentAccount();
+        if (_disposed || !context.mounted) return;
         context.go(AppRoutes.home);
       }
     } on GoogleSignInException catch (error) {

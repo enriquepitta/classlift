@@ -1,3 +1,4 @@
+import 'package:classlift/utils/classlift_colors.dart';
 import 'package:flutter/material.dart';
 
 class LoginTitle extends StatelessWidget {
@@ -25,7 +26,9 @@ class LoginTitle extends StatelessWidget {
                 text: 'Class',
                 children: [
                   TextSpan(
-                      text: 'Lift', style: TextStyle(color: Color(0xFF3479F6))),
+                    text: 'Lift',
+                    style: TextStyle(color: ClassliftColors.calendarSurface),
+                  ),
                 ],
               ),
               style: TextStyle(

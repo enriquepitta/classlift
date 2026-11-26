@@ -1,0 +1,50 @@
+<!-- ClassLift composition. Real UI captured from Flutter; fixtures are fictional. -->
+<template>
+<style>@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-Regular.ttf');font-weight:400}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-SemiBold.ttf');font-weight:600}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-ExtraBold.ttf');font-weight:800}
+*{box-sizing:border-box}#root{position:absolute;inset:0;overflow:hidden;font-family:Poppins;color:#333D86}
+.stage{position:absolute;inset:0}.title{position:absolute;left:145px;top:326px;width:650px;margin:0;font-size:84px;line-height:1.12;font-weight:800;letter-spacing:-4px}
+.note{position:absolute;left:145px;top:1195px;font-size:28px;font-weight:400;line-height:1.3;margin:0;color:#495780}
+.decoration{position:absolute;pointer-events:none}.rule{left:145px;top:275px;width:80px;height:9px;background:#333D86}
+.screen{position:absolute;left:145px;top:570px;width:630px;height:600px;overflow:hidden;border-radius:28px;box-shadow:0 22px 52px #28366520;background:#fff}
+.screen img{position:absolute;left:0;top:0;width:630px;height:auto;transform-origin:0 0}
+.tap{position:absolute;width:70px;height:70px;border:5px solid #FF6F61;border-radius:50%;opacity:0}
+
+
+#root{background:#ECF2FF}.screen{top:550px;height:615px;background:transparent;box-shadow:none;border-radius:25px}
+#calendar-tap{left:425px;top:905px}.title{font-size:82px}
+</style>
+<div id="root" data-composition-id="calendar" data-width="1080" data-height="1920">
+  <div id="calendar-stage" class="clip stage" data-start="0" data-duration="5" data-track-index="0">
+  
+<div class="decoration rule"></div>
+<h1 id="calendar-title" class="title">Tu semana,<br>a la vista.</h1>
+<div id="calendar-window" class="screen" data-layout-allow-overflow>
+  <img id="calendar-home" src="assets/home.png" alt="ClassLift: horario de clases" data-layout-allow-overflow>
+  <img id="calendar-month" src="assets/calendar.png" alt="ClassLift: calendario expandido" data-layout-allow-overflow>
+</div>
+<div id="calendar-tap" class="tap"></div>
+<p class="note">Pantallas reales · Datos de ejemplo</p>
+
+  </div>
+</div>
+<script>
+(function(){
+  const tl = gsap.timeline({paused:true});
+  
+tl.fromTo('#calendar-title',{x:50,opacity:0},{x:0,opacity:1,duration:.4,ease:'power3.out'},0);
+tl.fromTo('#calendar-home',{scale:.43,x:178,y:0},{scale:.43,x:178,y:0,duration:.8},0);
+tl.to('#calendar-home',{scale:1,x:0,y:-20,duration:.6,ease:'power3.inOut'},.8);
+tl.fromTo('#calendar-month',{opacity:0,y:-20},{opacity:0,y:-20,duration:.01},0);
+tl.fromTo('#calendar-tap',{scale:1.5,opacity:0},{scale:.75,opacity:1,duration:.2},2);
+tl.to('#calendar-tap',{scale:1.4,opacity:0,duration:.35},2.2);
+tl.to('#calendar-home',{opacity:0,duration:.12},2.2);
+tl.to('#calendar-month',{opacity:1,duration:.12},2.2);
+tl.to('#calendar-month',{y:-100,duration:.5,ease:'power2.out'},2.3);
+
+  window.__timelines=window.__timelines||{};
+  window.__timelines['calendar']=tl;
+})();
+</script>
+</template>

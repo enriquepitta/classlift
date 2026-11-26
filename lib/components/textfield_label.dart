@@ -1,7 +1,6 @@
 import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 
 class TextfieldLabel extends StatelessWidget {
   const TextfieldLabel({super.key});
@@ -51,8 +50,10 @@ class TextfieldLabel extends StatelessWidget {
               ),
             ),
           if (!glassStyle) SizedBox(height: spacingHeight),
-          KeyboardVisibilityBuilder(
-            builder: (context, isKeyboardVisible) {
+          Builder(
+            builder: (context) {
+              final isKeyboardVisible =
+                  MediaQuery.viewInsetsOf(context).bottom > 0;
               return ValueListenableBuilder<bool>(
                 valueListenable: obscureTextNotifier,
                 builder: (context, isObscure, child) {

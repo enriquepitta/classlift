@@ -1,0 +1,50 @@
+<!-- ClassLift composition. Real UI captured from Flutter; fixtures are fictional. -->
+<template>
+<style>@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-Regular.ttf');font-weight:400}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-SemiBold.ttf');font-weight:600}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-ExtraBold.ttf');font-weight:800}
+*{box-sizing:border-box}#root{position:absolute;inset:0;overflow:hidden;font-family:Poppins;color:#333D86}
+.stage{position:absolute;inset:0}.title{position:absolute;left:145px;top:326px;width:650px;margin:0;font-size:84px;line-height:1.12;font-weight:800;letter-spacing:-4px}
+.note{position:absolute;left:145px;top:1195px;font-size:28px;font-weight:400;line-height:1.3;margin:0;color:#495780}
+.decoration{position:absolute;pointer-events:none}.rule{left:145px;top:275px;width:80px;height:9px;background:#333D86}
+.screen{position:absolute;left:145px;top:570px;width:630px;height:600px;overflow:hidden;border-radius:28px;box-shadow:0 22px 52px #28366520;background:#fff}
+.screen img{position:absolute;left:0;top:0;width:630px;height:auto;transform-origin:0 0}
+.tap{position:absolute;width:70px;height:70px;border:5px solid #FF6F61;border-radius:50%;opacity:0}
+
+
+#root{background:#E5F6F1}.screen{top:590px;height:565px;border-radius:28px;box-shadow:0 20px 50px #277C791A}
+#tasks-tap{left:670px;top:602px}
+</style>
+<div id="root" data-composition-id="tasks" data-width="1080" data-height="1920">
+  <div id="tasks-stage" class="clip stage" data-start="0" data-duration="6" data-track-index="0">
+  
+<div class="decoration rule"></div>
+<h1 id="tasks-title" class="title">Tus entregas.<br>Bien a mano.</h1>
+<div id="tasks-window" class="screen" data-layout-allow-overflow>
+  <img id="tasks-home" src="assets/home-tasks.png" alt="Tareas de Moodle dentro de ClassLift" data-layout-allow-overflow>
+  <img id="tasks-list" src="assets/tasks.png" alt="Listado real de tareas pendientes" data-layout-allow-overflow>
+</div>
+<div id="tasks-tap" class="tap"></div>
+<p class="note">Conectá tu campus Moodle</p>
+
+  </div>
+</div>
+<script>
+(function(){
+  const tl = gsap.timeline({paused:true});
+  
+tl.fromTo('#tasks-title',{x:-60,opacity:0},{x:0,opacity:1,duration:.45,ease:'power3.out'},0);
+tl.fromTo('#tasks-home',{y:-700},{y:-700,duration:.01},0);
+tl.fromTo('#tasks-window',{x:100,opacity:0},{x:0,opacity:1,duration:.5,ease:'power3.out'},.1);
+tl.fromTo('#tasks-list',{opacity:0,y:0},{opacity:0,y:0,duration:.01},0);
+tl.fromTo('#tasks-tap',{scale:1.5,opacity:0},{scale:.75,opacity:1,duration:.2},2.45);
+tl.to('#tasks-tap',{scale:1.4,opacity:0,duration:.3},2.65);
+tl.to('#tasks-home',{x:-650,duration:.4,ease:'power3.inOut'},2.65);
+tl.fromTo('#tasks-list',{opacity:1,x:650},{opacity:1,x:0,duration:.4,ease:'power3.inOut',immediateRender:false},2.65);
+tl.to('#tasks-list',{y:-270,duration:.7,ease:'power2.inOut'},4.3);
+
+  window.__timelines=window.__timelines||{};
+  window.__timelines['tasks']=tl;
+})();
+</script>
+</template>

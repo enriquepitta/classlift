@@ -1,0 +1,170 @@
+ClassLift — auditoría de preparación para lanzamiento
+Fecha: 23 de noviembre de 2026
+Código revisado: e6b8268 (master), sin cambios funcionales durante la auditoría.
+
+VEREDICTO
+No recomiendo el lanzamiento público todavía. Hay una base funcional, pruebas
+automatizadas y un catálogo operativo, pero faltan controles de cuenta y privacidad,
+hay dos recorridos que eliminan datos académicos y hay acciones visibles incompletas.
+Prioridad: conservar datos, proteger la sesión de Moodle, cerrar el alcance del MVP,
+completar cuenta/privacidad y validar una build de distribución con cuentas de prueba.
+
+ALCANCE Y LÍMITES
+Revisión de código Flutter, configuración iOS/Android, pruebas existentes, compilación
+iOS para simulador y Android release, lectura de Supabase y captura del acceso real
+en iPhone 18 Pro simulado. Se revisó el binario actual después de compilarlo y ejecutarlo.
+No se completó autenticación con Google/Apple ni con EDUCA. El simulador no tiene cuenta
+Apple y no había una sesión de prueba autorizada para recorrer las pantallas internas.
+Los hallazgos internos se fundamentan en código; no se presentan como reproducción visual.
+No se validaron App Store Connect, ficha de Google Play, archivo iOS firmado, TestFlight,
+VoiceOver, dispositivo físico, iPad, modo horizontal ni todas las condiciones sin conexión.
+No es una auditoría de seguridad exhaustiva ni una certificación de accesibilidad.
+
+PRIORIDAD ALTA: RESOLVER ANTES DE PUBLICAR
+
+1. Falta eliminación de cuenta y acceso a la política de privacidad.
+El ingreso social crea cuentas; la pantalla de perfil sólo expone Cerrar sesión.
+No se encontró un flujo de borrado de Firebase ni enlace a privacidad dentro de la app.
+Evidencia: lib/screens/login/login_screen.dart:95;
+lib/widgets/home/home_profile_header.dart:50; lib/router/app_router.dart:8.
+Salida: política publicada y enlazada; eliminar cuenta con reautenticación cuando
+corresponda, eliminación de datos asociados y revocación de Apple cuando aplique.
+Apple exige política accesible en la app y eliminación si se crean cuentas:
+https://developer.apple.com/app-store/review/guidelines/#privacy
+Google Play también exige un camino dentro de la app y un recurso web para solicitar
+eliminación cuando existe creación de cuenta:
+https://support.google.com/googleplay/android-developer/answer/13327111?hl=en
+El estado de los metadatos de las tiendas no fue consultado: queda por verificar.
+
+2. Cerrar sesión borra la planificación local sin advertencia.
+_signOut llama a clearAllData antes de cerrar Firebase. Esa operación elimina materias,
+horarios, evaluaciones, calificaciones y ajustes. No se encontró restauración remota.
+Ejemplo: cargar materias, cerrar sesión y volver a ingresar deja la planificación vacía.
+Evidencia: lib/screens/home_screen.dart:54; lib/services/database_service.dart:572;
+lib/widgets/home/home_profile_header.dart:87.
+Salida: separar cierre de sesión y borrado; conservar datos aislados por cuenta o
+respaldarlos y restaurarlos. Verificar regreso a la misma cuenta y cambio de cuenta.
+
+3. Añadir una selección reemplaza toda la anterior.
+La selección arranca vacía. saveSelectedSubjects desactiva todas las materias y borra
+todos los horarios y evaluaciones antes de guardar sólo la nueva selección.
+Ejemplo: tener A/B, abrir Añadir, guardar C: A/B dejan de estar activas.
+Evidencia: lib/screens/class_schedule.dart:28; lib/services/database_service.dart:273;
+lib/widgets/navigation_menu.dart (tooltip Añadir); lib/screens/home_screen.dart:644.
+Salida: añadir conservando lo existente, o ofrecer reemplazo explícito con aviso,
+preselección y posibilidad de recuperación. Verificar ambos recorridos.
+
+4. Navegación y carga manual incompletas.
+Horario y Más sólo modifican _selectedIndex; el cuerpo de Home no cambia según ese
+índice. La carga manual muestra «Función manual próximamente...».
+Evidencia: lib/screens/home_screen.dart:416 y :635; _selectedIndex sólo se utiliza para
+la selección de la barra. No hay rutas asociadas a esas dos pestañas.
+Salida: implementar esos destinos o retirarlos del MVP visible. No es necesario agregar
+la función manual para lanzar si se deja de ofrecer como una acción disponible.
+
+5. El token de Moodle se persiste en SQLite sin protección específica del secreto.
+La contraseña recordada sí utiliza almacenamiento seguro. Sin embargo MoodleSession
+incluye token en toJson y persistSession guarda ese JSON en app_settings de SQLite.
+No se observó cifrado de esa base por parte de la app. Esto no implica que otra app
+pueda leerla libremente: sigue existiendo el aislamiento del sistema operativo.
+Evidencia: lib/services/moodle_auth_service.dart:33 y :331;
+lib/services/database_service.dart:26 y :163; lib/services/moodle_credential_store.dart.
+Salida: mover el token a almacenamiento seguro y migrar/borrar la copia anterior.
+Verificar restauración, vencimiento, desconexión y ausencia de secretos en registros.
+
+6. Android todavía no tiene una entrega release comprobada.
+flutter build appbundle --release --no-pub falló: Java 25.0.4 incompatible con Gradle 8.3,
+«Unsupported class file major version 69». Es un bloqueo del entorno comprobado, no
+evidencia de que la app falle en ejecución Android.
+Además android/app/build.gradle:40 configura release con signingConfigs.debug.
+El google-services.json local no contiene clientes OAuth; confirmar la configuración
+Google para Android y las huellas de firma antes de dar su login por validado.
+Salida: JDK/Gradle compatibles y reproducibles, firma de distribución, AAB generado e
+instalación/prueba desde la pista interna. Si el primer lanzamiento es sólo iOS, esto
+puede quedar fuera del corte inicial.
+
+SIGUIENTE PRIORIDAD
+
+7. Cambios de horarios oficiales no actualizan automáticamente la planificación personal.
+La documentación lo declara y las materias guardadas no conservan una referencia de
+versión del catálogo para reconciliación. También se excluyen laboratorios publicados
+en archivos separados. La caché no comunica si se usó por un fallo de conexión.
+Evidencia: docs/faculty-schedules.md; lib/services/faculty_schedule_service.dart:65 y :91;
+lib/services/database_service.dart:39.
+Salida mínima del MVP: explicar alcance y fecha de la fuente, avisar de copias sin
+conexión y ofrecer actualización explícita sin perder selecciones. No confundir
+«catálogo actualizado» con «mi horario actualizado».
+
+8. Falta una verificación automática que condicione la entrega.
+La acción GitHub dispara Xcode Cloud; ci_post_clone prepara dependencias pero no ejecuta
+flutter test, flutter analyze ni el test del parser. No se inspeccionaron posibles
+acciones adicionales configuradas exclusivamente en la consola Xcode Cloud.
+El analizador devolvió 143 incidencias y código de salida 1.
+Evidencia: .github/workflows/testflight.yml; ios/ci_scripts/ci_post_clone.sh.
+Salida: hacer obligatorios los controles relevantes antes de distribuir y corregir
+advertencias útiles. Las deprecaciones cosméticas no tienen el mismo peso que perder datos.
+
+9. Observabilidad y recuperación incompletas.
+No se encontró integración Crashlytics/Sentry ni manejador global de errores en Flutter.
+main espera Firebase antes de runApp sin pantalla alternativa de fallo; Home carga SQLite
+sin catch/finally en _loadClassesForSelectedDay. Esto es un riesgo de recuperación por
+inspección, no un fallo de arranque reproducido.
+Salida: reporte de fallos sin credenciales, estado recuperable y reintento ante fallos
+de inicialización/base de datos. Un fallo remoto no debe confundirse con cero tareas.
+
+10. Detalles observados o reproducibles de experiencia.
+El aviso Google dice «classify», mientras la pantalla dice ClassLift. CFBundleName
+conserva classify (ios/Runner/Info.plist). Unificar nombre para evitar desconfianza.
+Cerrar el aviso de Apple sin cuenta del sistema muestra luego un error genérico que
+sólo propone intentar de nuevo; explicar cómo resolverlo o tratarlo como cancelación.
+Cancelar selección Excel se lanza como excepción y Home la presenta como error rojo
+(lib/utils/excel_picker_service.dart:16; lib/screens/home_screen.dart:387).
+El README describe un backend Spring Boot que no refleja el flujo observado; actualizar
+documentación y promesas del producto. No se encontró implementación de recordatorios
+automáticos; no anunciarlos como disponibles.
+
+RECORRIDO VISUAL CAPTURADO
+1. Inicio/login — buena jerarquía y botones legibles, sin recortes en este tamaño.
+   Falta acceso a privacidad. Captura: 01-login.jpg.
+2. Google — abre aviso del sistema; cancelar recupera los botones. Nombre inconsistente
+   «classify». No se completó OAuth. Captura: 02-google-consent.jpg.
+3. Apple — muestra aviso que exige cuenta Apple en Configuración. Límite del entorno,
+   no evidencia de proveedor deshabilitado. Captura: 03-apple-account-required.jpg.
+4. Recuperación de Apple — cerrar ese aviso abre error genérico con Entendí; se puede
+   cerrar y regresar. Falta orientación específica. Captura: 04-apple-error.jpg.
+5. Home/horarios/selección/EDUCA — revisión de código y pruebas automatizadas; recorrido
+   visual bloqueado por falta de sesión de prueba. No hay capturas aceptadas de esos pasos.
+Las cuatro imágenes se capturaron en esta auditoría mediante Device Hub y se inspeccionaron
+después de guardarlas. Las vistas de una instalación anterior se descartaron.
+Las capturas del simulador se conservan localmente porque muestran nombres de dispositivos.
+Accesibilidad: los botones de acceso tienen etiquetas en el árbol accesible; el texto
+secundario pequeño sobre fondo ilustrado merece medición de contraste. No se midió una
+relación de contraste ni se probó navegación completa con VoiceOver. Las pruebas existentes
+de login cubren pantalla pequeña y escala de texto 2x, pero no certifican toda la app.
+
+RESULTADOS DE VERIFICACIÓN
+- flutter test --reporter expanded: 109 pasaron, 1 omitida, 0 fallos.
+- La omitida usa un Excel en una ruta temporal externa que no existe aquí
+  (test/hybrid_excel_test.dart:142). Incorporar un fixture reproducible autorizado.
+- node tool/test_faculty_schedule_parser.mjs: OK.
+- flutter analyze: 143 incidencias, salida 1.
+- flutter build ios --simulator --debug --no-pub: completado; ejecución confirmada.
+- flutter build appbundle --release --no-pub: falló por Java/Gradle.
+- API pública del catálogo con la clave publicable de la app: HTTP 200, dos catálogos.
+- Catálogo nuevo: 103 registros, 103 con horario. Anterior: 1299, 996 con horario.
+  No se infiere que los registros restantes sean errores; pueden carecer de horario.
+- Última actualización de los datos: 20/11/2026. Cron activo cada seis horas.
+- Se comprobaron también respuestas HTTP de Cron (no sólo su estado SQL): el 23/11,
+  12:00 y 12:10 UTC, ambas HTTP 200, status unchanged, sin timeout.
+- Asesor de seguridad Supabase: sin avisos. Esto no prueba seguridad integral de la app.
+- No se publicaron builds ni se modificaron datos remotos.
+- Se revirtieron únicamente las dos opciones que Flutter añadió automáticamente a
+  android/gradle.properties durante la comprobación. No se cambiaron funciones de la app.
+
+CRITERIOS PARA DAR LUZ VERDE
+Conservar planificación al cerrar sesión y al añadir materias; secretos en almacenamiento
+seguro; todas las acciones visibles funcionando; privacidad/eliminación completas; acceso
+Google/Apple y EDUCA comprobado con cuentas de prueba en build de distribución; importación,
+persistencia tras reiniciar, desconexión y vencimiento probados; ficha y datos de privacidad
+de la tienda revisados; soporte accesible y una forma de detectar errores en producción.
+Después: beta cerrada con estudiantes y corrección de problemas antes de apertura pública.

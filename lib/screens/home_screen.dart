@@ -1,4 +1,5 @@
 import 'package:classlift/components/evaluation_bottom_sheet.dart';
+import 'package:classlift/screens/fpuna_grade_calculator_screen.dart';
 import 'package:classlift/utils/excel_picker_service.dart';
 import 'package:classlift/utils/options_bottom_sheet.dart';
 import 'dart:ui';
@@ -13,6 +14,7 @@ import 'package:classlift/utils/classlift_colors.dart';
 import 'package:classlift/models/database_models.dart';
 import 'package:classlift/services/database_service.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'privacy_screen.dart';
 import 'select_career.dart';
 import 'faculty_schedule_screen.dart';
 import 'package:classlift/services/moodle_auth_service.dart';
@@ -22,6 +24,8 @@ import 'package:classlift/widgets/home/pending_tasks_section.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:classlift/widgets/home/home_profile_header.dart';
+import 'package:classlift/services/account_service.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,7 +42,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   CalendarFormat _calendarFormat = CalendarFormat.week;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
-  int _selectedIndex = 0;
   List<ScheduledClass> _classesForSelectedDay = [];
   List<ScheduledClass> _allActiveClasses = [];
   Map<String, int> _classesCountByDay = {};
@@ -50,15 +53,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _dismissedScheduleRecommendation = false;
   bool _dismissedEducaRecommendation = false;
   bool _restoringMoodleSession = true;
+  LocalHistoryEntry? _expandedNavigation;
 
   Future<void> _signOut() async {
     if (_signingOut) return;
     setState(() => _signingOut = true);
     try {
-      await MoodleAuthService.instance.disconnect();
-      await DatabaseService.clearAllData();
-      MoodleTasksService.clearCache();
-      await FirebaseAuth.instance.signOut();
+      await AccountService.instance.signOut();
       if (!mounted) return;
       context.go('/login');
     } catch (_) {
@@ -69,6 +70,87 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     } finally {
       if (mounted) setState(() => _signingOut = false);
     }
+  }
+
+  Future<void> _deleteAccount() async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+    try {
+      await AccountService.instance.deleteCurrentAccount();
+      if (mounted) context.go('/login');
+    } on AccountCleanupException {
+      if (!mounted) return;
+      await _finishLocalDeletion();
+    } on GoogleSignInException catch (error) {
+      if (error.code != GoogleSignInExceptionCode.canceled) {
+        _accountError('No pudimos verificar tu identidad. Intentá nuevamente.');
+      }
+    } on FirebaseAuthException catch (error) {
+      if (!const {
+        'canceled',
+        'cancelled-popup-request',
+        'popup-closed-by-user',
+        'web-context-cancelled',
+        'user-cancelled'
+      }.contains(error.code)) {
+        _accountError(error.code == 'user-mismatch'
+            ? 'Elegí la misma cuenta con la que ingresaste a ClassLift.'
+            : error.code == 'network-request-failed'
+                ? 'No se pudo eliminar la cuenta. Revisá tu conexión e intentá nuevamente.'
+                : 'No se pudo completar la eliminación. Verificá tu identidad e intentá nuevamente.');
+      }
+    } catch (_) {
+      _accountError('No se pudo completar la eliminación. Intentá nuevamente.');
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
+    }
+  }
+
+  void _accountError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _finishLocalDeletion() async {
+    var retrying = false;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: StatefulBuilder(
+            builder: (context, update) => AlertDialog(
+                  title: const Text('La cuenta se eliminó'),
+                  content: const Text(
+                      'Falta terminar de borrar los datos de este dispositivo. '
+                      'Reintentá para finalizar. Si cerrás la app, lo intentaremos al abrirla.'),
+                  actions: [
+                    TextButton(
+                      onPressed: retrying
+                          ? null
+                          : () async {
+                              update(() => retrying = true);
+                              try {
+                                await AccountService.instance
+                                    .recoverPendingDeletion();
+                                if (dialogContext.mounted) {
+                                  Navigator.pop(dialogContext);
+                                }
+                              } catch (_) {
+                                if (context.mounted) {
+                                  update(() => retrying = false);
+                                }
+                              }
+                            },
+                      child: Text(retrying ? 'Borrando…' : 'Finalizar borrado'),
+                    )
+                  ],
+                )),
+      ),
+    );
+    if (mounted) context.go('/login');
   }
 
   Future<void> _refreshMoodleTasks() async {
@@ -102,16 +184,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _restoreMoodleSession() async {
-    final session = await MoodleAuthService.instance.restoreSession();
-    if (!mounted) return;
-    if (session != null && MoodleTasksService.lastLoad == null) {
-      MoodleTasksService.loadCurrentSession();
+    try {
+      final session = await MoodleAuthService.instance.restoreSession();
+      if (!mounted) return;
+      if (session != null && MoodleTasksService.lastLoad == null) {
+        MoodleTasksService.loadCurrentSession();
+      }
+    } catch (_) {
+      _accountError(
+          'No pudimos recuperar la sesión del campus. Volvé a conectarlo.');
+    } finally {
+      if (mounted) setState(() => _restoringMoodleSession = false);
     }
-    setState(() => _restoringMoodleSession = false);
   }
 
   @override
   void dispose() {
+    final expandedNavigation = _expandedNavigation;
+    _expandedNavigation = null;
+    expandedNavigation?.remove();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -131,30 +222,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final selectedDay = _selectedDay;
     if (selectedDay == null) return;
 
-    setState(() => _isLoadingClasses = true);
-    final results = await Future.wait([
-      DatabaseService.getClassesForDay(_dayNameFor(selectedDay)),
-      DatabaseService.getClassesCountByDay(),
-      DatabaseService.getSelectedSubjects(),
-      DatabaseService.getAllActiveClasses(),
-      DatabaseService.getNextUpcomingEvaluations(),
-    ]);
-    final classes = results[0] as List<ScheduledClass>;
-    final countsByDay = results[1] as Map<String, int>;
-    final subjects = results[2] as List<SelectedSubject>;
-    final allClasses = results[3] as List<ScheduledClass>;
-    final nextEvaluations = results[4] as List<UpcomingEvaluation>;
+    try {
+      setState(() => _isLoadingClasses = true);
+      final results = await Future.wait([
+        DatabaseService.getClassesForDay(_dayNameFor(selectedDay)),
+        DatabaseService.getClassesCountByDay(),
+        DatabaseService.getSelectedSubjects(),
+        DatabaseService.getAllActiveClasses(),
+        DatabaseService.getNextUpcomingEvaluations(),
+      ]);
+      final classes = results[0] as List<ScheduledClass>;
+      final countsByDay = results[1] as Map<String, int>;
+      final subjects = results[2] as List<SelectedSubject>;
+      final allClasses = results[3] as List<ScheduledClass>;
+      final nextEvaluations = results[4] as List<UpcomingEvaluation>;
 
-    if (!mounted || !isSameDay(selectedDay, _selectedDay)) return;
-    setState(() {
-      _classesForSelectedDay = classes;
-      _allActiveClasses = allClasses;
-      _classesCountByDay = countsByDay;
-      _colorIndexBySubject = _buildColorIndexes(subjects);
-      _nextClassOccurrence = _findNextClassAfter(selectedDay, allClasses);
-      _nextEvaluations = nextEvaluations;
-      _isLoadingClasses = false;
-    });
+      if (!mounted || !isSameDay(selectedDay, _selectedDay)) return;
+      setState(() {
+        _classesForSelectedDay = classes;
+        _allActiveClasses = allClasses;
+        _classesCountByDay = countsByDay;
+        _colorIndexBySubject = _buildColorIndexes(subjects);
+        _nextClassOccurrence = _findNextClassAfter(selectedDay, allClasses);
+        _nextEvaluations = nextEvaluations;
+        _isLoadingClasses = false;
+      });
+    } catch (_) {
+      if (mounted && !_signingOut) {
+        setState(() => _isLoadingClasses = false);
+        _accountError(
+            "No pudimos leer tu planificación. Intentá abrirla nuevamente.");
+      }
+    }
   }
 
   Future<void> _loadRecommendationPreferences() async {
@@ -277,12 +376,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _toggleWeeklySummary(DateTime selectedDay, DateTime focusedDay) {
-    if (isSameDay(selectedDay, _selectedDay)) {
-      setState(() {
-        _selectedDay = null;
-        _focusedDay = focusedDay;
-        _isWeeklySummary = true;
-      });
+    if (!_isWeeklySummary && isSameDay(selectedDay, _selectedDay)) {
+      _showWeeklySummary(focusedDay);
       return;
     }
 
@@ -293,6 +388,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       _isWeeklySummary = false;
     });
     _loadClassesForSelectedDay();
+  }
+
+  void _showWeeklySummary(DateTime focusedDay) {
+    setState(() {
+      _focusedDay = focusedDay;
+      _isWeeklySummary = true;
+    });
   }
 
   void _selectWeeklyDay(DateTime day) {
@@ -307,7 +409,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   bool get _showTodayShortcut {
     final today = DateUtils.dateOnly(DateTime.now());
-    return !isSameDay(_selectedDay, today) || !isSameDay(_focusedDay, today);
+    return _isWeeklySummary ||
+        !isSameDay(_selectedDay, today) ||
+        !isSameDay(_focusedDay, today);
   }
 
   void _goToToday() {
@@ -353,6 +457,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _handleDaySwipeEnd(DragEndDetails details) {
+    if (_isWeeklySummary) return;
     const minimumDragDistance = 48.0;
     const minimumVelocity = 380.0;
     final velocity = details.primaryVelocity ?? 0;
@@ -413,20 +518,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (mounted) await _loadClassesForSelectedDay();
   }
 
-  void _handleManual() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Función manual próximamente...'),
-        backgroundColor: ClassliftColors.orange,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) =>
       ValueListenableBuilder<Future<MoodleTasksResult>?>(
         valueListenable: MoodleTasksService.loadListenable,
-        builder: (context, tasks, _) => _buildHome(context, tasks),
+        builder: (context, tasks, _) => AbsorbPointer(
+            absorbing: _signingOut, child: _buildHome(context, tasks)),
       );
 
   Widget _buildHome(BuildContext context, Future<MoodleTasksResult>? tasks) {
@@ -438,6 +535,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final showEducaRecommendation = !_restoringMoodleSession &&
         !_dismissedEducaRecommendation &&
         !hasMoodleSession;
+    final navigationExpanded = _expandedNavigation != null;
 
     return Scaffold(
       extendBody: true,
@@ -486,6 +584,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         subtitle: _homeSubtitle(snapshot.data),
                         signingOut: _signingOut,
                         onSignOut: _signOut,
+                        onDeleteAccount: _deleteAccount,
                       ),
                     ),
                     // Calendario (parte superior)
@@ -501,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           child: CalendarWidget(
                             showBackground: false,
                             focusedDay: _focusedDay,
-                            selectedDay: _selectedDay,
+                            selectedDay: _isWeeklySummary ? null : _selectedDay,
                             calendarFormat: _calendarFormat,
                             classCountByDay: _classesCountByDay,
                             onDaySelected: _toggleWeeklySummary,
@@ -582,7 +681,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (showNewUserState) ...[
+                                if (_isWeeklySummary)
+                                  _buildWeeklySummary()
+                                else if (showNewUserState) ...[
                                   if (showScheduleRecommendation ||
                                       showEducaRecommendation)
                                     _buildNewUserSetupSection(
@@ -599,14 +700,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                       onReconnect: _connectMoodle,
                                     ),
                                 ] else ...[
-                                  _isWeeklySummary
-                                      ? _buildWeeklySummary()
-                                      : Column(
-                                          children: [
-                                            _buildDailySchedule(),
-                                            _buildUpcomingEvaluations(),
-                                          ],
-                                        ),
+                                  _buildDailySchedule(),
+                                  _buildUpcomingEvaluations(),
                                   if (hasMoodleSession)
                                     PendingTasksSection(
                                       key: ObjectKey(
@@ -629,28 +724,127 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
+            IgnorePointer(
+              ignoring: !navigationExpanded,
+              child: AnimatedOpacity(
+                opacity: navigationExpanded ? 1 : 0,
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 240),
+                child: ModalBarrier(
+                  color: ClassliftColors.Black.withValues(alpha: .12),
+                  onDismiss: _closeExpandedNavigation,
+                  barrierSemanticsDismissible: false,
+                ),
+              ),
+            ),
           ],
         ),
       ),
       bottomNavigationBar: CustomBottomNavigationBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: (i) {
-          if (i == 2) {
-            context.go('/tasks');
-            return;
-          }
-          setState(() => _selectedIndex = i);
-        },
-        onAddPressed: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          useSafeArea: true,
-          backgroundColor: ClassliftColors.transparent,
-          barrierColor: ClassliftColors.PrimaryColor.withOpacity(0.15),
-          builder: (_) => OptionsBottomSheet(
-            onExcel: _handleExcel,
-            onManual: _handleManual,
-            onFaculty: _startFacultySchedule,
+        selectedItem:
+            _isWeeklySummary ? HomeMenuItem.schedule : HomeMenuItem.home,
+        expanded: navigationExpanded,
+        moodleConnected: hasMoodleSession,
+        onItemTapped: _onHomeMenuPressed,
+        onAddFacultySchedule: _startFacultySchedule,
+        onImportExcel: _handleExcel,
+        onAddOpened: _closeExpandedNavigation,
+      ),
+    );
+  }
+
+  Future<void> _onHomeMenuPressed(HomeMenuItem item) async {
+    if (item != HomeMenuItem.more) _closeExpandedNavigation();
+    switch (item) {
+      case HomeMenuItem.home:
+        if (_isWeeklySummary) _selectWeeklyDay(_selectedDay ?? _focusedDay);
+      case HomeMenuItem.schedule:
+        if (!_isWeeklySummary) _showWeeklySummary(_focusedDay);
+      case HomeMenuItem.tasks:
+        context.go('/tasks');
+      case HomeMenuItem.evaluations:
+        await _openUpcomingEvaluations();
+      case HomeMenuItem.calculator:
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(builder: (_) => const FpUnaGradeCalculatorScreen()),
+        );
+      case HomeMenuItem.moodle:
+        await _connectMoodle();
+      case HomeMenuItem.privacy:
+        await PrivacyScreen.open(context);
+      case HomeMenuItem.more:
+        _toggleExpandedNavigation();
+    }
+  }
+
+  void _toggleExpandedNavigation() {
+    if (_expandedNavigation != null) {
+      _closeExpandedNavigation();
+      return;
+    }
+    final route = ModalRoute.of(context);
+    if (route == null || !route.isCurrent) return;
+    final entry = LocalHistoryEntry(
+      impliesAppBarDismissal: false,
+      onRemove: () {
+        if (_expandedNavigation != null) {
+          setState(() => _expandedNavigation = null);
+        }
+      },
+    );
+    route.addLocalHistoryEntry(entry);
+    setState(() => _expandedNavigation = entry);
+  }
+
+  void _closeExpandedNavigation() => _expandedNavigation?.remove();
+
+  Future<void> _openAddOptions() => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: ClassliftColors.transparent,
+        barrierColor: ClassliftColors.PrimaryColor.withOpacity(0.15),
+        builder: (_) => OptionsBottomSheet(
+          onExcel: _handleExcel,
+          onFaculty: _startFacultySchedule,
+        ),
+      );
+
+  Future<void> _openUpcomingEvaluations() {
+    late final evaluations = DatabaseService.getUpcomingEvaluations();
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: const Text('Próximas evaluaciones')),
+          body: SafeArea(
+            top: false,
+            child: FutureBuilder<List<UpcomingEvaluation>>(
+              future: evaluations,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text('No pudimos cargar las evaluaciones.'),
+                  );
+                }
+                final upcoming = snapshot.data ?? const <UpcomingEvaluation>[];
+                if (upcoming.isEmpty) {
+                  return const Center(
+                    child: Text('No hay evaluaciones próximas.'),
+                  );
+                }
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: upcoming.length,
+                  itemBuilder: (_, index) =>
+                      _buildUpcomingEvaluationCard(upcoming[index]),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -987,7 +1181,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         children: [
           _buildWeeklyHeader(),
           const SizedBox(height: 14),
-          ...weekDays.map(_buildWeeklyDay),
+          if (_isLoadingClasses)
+            _buildDailySchedule()
+          else if (_allActiveClasses.isEmpty) ...[
+            const Text('Todavía no tenés clases en tu horario.'),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _openAddOptions,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Agregar clases'),
+            ),
+          ] else
+            ...weekDays.map(_buildWeeklyDay),
         ],
       ),
     );

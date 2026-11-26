@@ -3,8 +3,16 @@ import 'package:flutter/material.dart';
 /// Scalable ClassLift mark: an open book and an upward arrow.
 class ClassliftLogo extends StatelessWidget {
   final double size;
+  final double bookProgress;
+  final double arrowProgress;
 
-  const ClassliftLogo({super.key, this.size = 144});
+  const ClassliftLogo({
+    super.key,
+    this.size = 144,
+    this.bookProgress = 1,
+    this.arrowProgress = 1,
+  })  : assert(bookProgress >= 0 && bookProgress <= 1),
+        assert(arrowProgress >= 0 && arrowProgress <= 1);
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +37,7 @@ class ClassliftLogo extends StatelessWidget {
         ),
         child: CustomPaint(
           size: Size.square(size),
-          painter: const _ClassliftMarkPainter(),
+          painter: _ClassliftMarkPainter(bookProgress, arrowProgress),
         ),
       ),
     );
@@ -39,7 +47,10 @@ class ClassliftLogo extends StatelessWidget {
 /// Draw the mark synchronously, including during the very first startup frame.
 /// The matching SVG in assets/icons/classlift_mark.svg remains available for export.
 class _ClassliftMarkPainter extends CustomPainter {
-  const _ClassliftMarkPainter();
+  final double bookProgress;
+  final double arrowProgress;
+
+  const _ClassliftMarkPainter(this.bookProgress, this.arrowProgress);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -80,6 +91,11 @@ class _ClassliftMarkPainter extends CustomPainter {
             end: Alignment.bottomRight,
             colors: [Color(0xCCFFFFFF), Color(0x1FFFFFFF)],
           ).createShader(tile.outerRect));
+    // Open both leaves around the spine; the tile is visible from frame one.
+    canvas.save();
+    canvas.translate(64, 0);
+    canvas.scale(0.22 + 0.78 * bookProgress, 1);
+    canvas.translate(-64, 0);
     canvas.drawPath(
       Path()
         ..moveTo(26, 48)
@@ -103,13 +119,26 @@ class _ClassliftMarkPainter extends CustomPainter {
           colors: [Colors.white, Color(0xFFD1E7FF)],
         ).createShader(const Rect.fromLTWH(70, 43, 32, 53)),
     );
+    canvas.restore();
+    final arrow = Path()
+      ..moveTo(64, 66)
+      ..lineTo(64, 28)
+      ..moveTo(51, 41)
+      ..lineTo(64, 28)
+      ..lineTo(77, 41);
+    final metrics = arrow.computeMetrics().toList();
+    var remaining =
+        metrics.fold<double>(0, (sum, m) => sum + m.length) * arrowProgress;
+    final drawnArrow = Path();
+    for (final metric in metrics) {
+      if (remaining <= 0) break;
+      drawnArrow.addPath(
+          metric.extractPath(0, remaining.clamp(0, metric.length)),
+          Offset.zero);
+      remaining -= metric.length;
+    }
     canvas.drawPath(
-      Path()
-        ..moveTo(64, 66)
-        ..lineTo(64, 28)
-        ..moveTo(51, 41)
-        ..lineTo(64, 28)
-        ..lineTo(77, 41),
+      drawnArrow,
       Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
@@ -123,7 +152,8 @@ class _ClassliftMarkPainter extends CustomPainter {
         ..cubicTo(45, 98, 54, 101, 64, 107)
         ..cubicTo(74, 101, 83, 98, 94, 97),
       Paint()
-        ..color = const Color(0x8CBCDFFF)
+        ..color = Color.lerp(
+            Colors.transparent, const Color(0x8CBCDFFF), bookProgress)!
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5
         ..strokeCap = StrokeCap.round,
@@ -132,5 +162,7 @@ class _ClassliftMarkPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ClassliftMarkPainter oldDelegate) => false;
+  bool shouldRepaint(_ClassliftMarkPainter oldDelegate) =>
+      bookProgress != oldDelegate.bookProgress ||
+      arrowProgress != oldDelegate.arrowProgress;
 }

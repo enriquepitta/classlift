@@ -15,13 +15,17 @@ class MoodleRememberedAccount {
       required this.password});
 }
 
-/// Only an explicitly remembered account is stored here, never in SQLite.
+/// Campus secrets are device-local and isolated by ClassLift account.
 class MoodleCredentialStore {
-  static const _key = 'classlift.moodle.remembered_account.v1';
+  final String? accountId;
+  String get _suffix =>
+      accountId == null ? '' : '.${base64Url.encode(utf8.encode(accountId!))}';
+  String get _key => 'classlift.moodle.remembered_account.v1$_suffix';
+  String get _sessionKey => 'classlift.moodle.session.v2$_suffix';
   final FlutterSecureStorage _storage;
   Future<void> _pending = Future<void>.value();
 
-  MoodleCredentialStore({FlutterSecureStorage? storage})
+  MoodleCredentialStore({FlutterSecureStorage? storage, this.accountId})
       : _storage = storage ??
             const FlutterSecureStorage(
               iOptions: IOSOptions(
@@ -77,4 +81,15 @@ class MoodleCredentialStore {
   }
 
   Future<void> delete() => _mutate(() => _storage.delete(key: _key));
+
+  Future<void> saveSession(String json) =>
+      _mutate(() => _storage.write(key: _sessionKey, value: json));
+
+  Future<String?> readSession() async {
+    await _pending;
+    return _storage.read(key: _sessionKey);
+  }
+
+  Future<void> deleteSession() =>
+      _mutate(() => _storage.delete(key: _sessionKey));
 }

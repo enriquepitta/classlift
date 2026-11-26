@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:classlift/utils/classlift_colors.dart';
+import 'package:classlift/screens/privacy_screen.dart';
 
 class HomeProfileHeader extends StatelessWidget {
   const HomeProfileHeader({
@@ -11,6 +12,7 @@ class HomeProfileHeader extends StatelessWidget {
     required this.subtitle,
     required this.signingOut,
     required this.onSignOut,
+    this.onDeleteAccount,
   });
 
   final String? displayName;
@@ -19,6 +21,7 @@ class HomeProfileHeader extends StatelessWidget {
   final String subtitle;
   final bool signingOut;
   final Future<void> Function() onSignOut;
+  final Future<void> Function()? onDeleteAccount;
 
   bool get _hasPhoto => photoUrl?.trim().isNotEmpty == true;
 
@@ -48,7 +51,7 @@ class HomeProfileHeader extends StatelessWidget {
   }
 
   Future<void> _openProfile(BuildContext context) async {
-    final signOut = await showModalBottomSheet<bool>(
+    final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
@@ -86,18 +89,64 @@ class HomeProfileHeader extends StatelessWidget {
               const Divider(height: 1),
               ListTile(
                 contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: const Text('Política de privacidad'),
+                onTap: () => Navigator.pop(context, 'privacy'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.logout_rounded,
                     color: ClassliftColors.educaRed),
                 title: const Text('Cerrar sesión',
                     style: TextStyle(color: ClassliftColors.educaRed)),
-                onTap: () => Navigator.pop(context, true),
+                subtitle: const Text(
+                    'Tu planificación se conserva en este dispositivo.'),
+                onTap: () => Navigator.pop(context, 'signOut'),
               ),
+              if (onDeleteAccount != null)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.delete_forever_outlined,
+                      color: ClassliftColors.educaRed),
+                  title: const Text('Eliminar cuenta',
+                      style: TextStyle(color: ClassliftColors.educaRed)),
+                  onTap: () => Navigator.pop(context, 'delete'),
+                ),
             ],
           ),
         ),
       ),
     );
-    if (signOut == true && context.mounted) await onSignOut();
+    if (!context.mounted) return;
+    if (action == 'signOut') await onSignOut();
+    if (action == 'privacy') await PrivacyScreen.open(context);
+    if (action == 'delete') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          scrollable: true,
+          title: const Text('¿Eliminar tu cuenta?'),
+          content: const Text(
+            'Se eliminarán tu cuenta de ClassLift, tu planificación y los datos de acceso '
+            'al campus guardados en este dispositivo. No se puede deshacer.\n\n'
+            'Tus cuentas de Google, Apple y Moodle no se eliminan. '
+            'Te pediremos verificar tu identidad antes de continuar.',
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar')),
+            TextButton(
+              style: TextButton.styleFrom(
+                  foregroundColor: ClassliftColors.educaRed),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Eliminar mi cuenta'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true && context.mounted) await onDeleteAccount?.call();
+    }
   }
 
   @override
@@ -142,7 +191,7 @@ class HomeProfileHeader extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               IconButton(
-                tooltip: signingOut ? 'Cerrando sesión' : 'Mi perfil',
+                tooltip: signingOut ? 'Procesando cuenta' : 'Mi perfil',
                 onPressed: signingOut ? null : () => _openProfile(context),
                 style: IconButton.styleFrom(
                   foregroundColor: ClassliftColors.calendarInk,

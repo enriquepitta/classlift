@@ -46,7 +46,8 @@ class MoodleSession {
         token is! String ||
         userId is! int ||
         fullName is! String ||
-        siteUrl.isEmpty ||
+        Uri.tryParse(siteUrl)?.scheme != 'https' ||
+        Uri.tryParse(siteUrl)?.host.isEmpty != false ||
         token.isEmpty) {
       throw const FormatException('Invalid Moodle session');
     }
@@ -72,7 +73,7 @@ class MoodleAuthService {
   static const _storedSessionKey = 'moodle_session';
   final http.Client _client;
   final String siteUrl;
-  final MoodleCredentialStore _credentialStore;
+  MoodleCredentialStore _credentialStore;
   final Future<void> Function(MoodleSession)? _sessionPersistence;
   final Future<void> Function()? _sessionRemoval;
   Future<MoodleSession?>? _renewal;
@@ -80,6 +81,25 @@ class MoodleAuthService {
   int _sessionRevision = 0;
 
   MoodleSession? session;
+
+  Future<void> useAccount(String? uid, {bool migrateLegacy = false}) async {
+    signOut();
+    final store = MoodleCredentialStore(accountId: uid);
+    if (migrateLegacy) {
+      final legacy = MoodleCredentialStore();
+      if (uid != null) {
+        final remembered = await legacy.read();
+        if (remembered != null && await store.read() == null) {
+          await store.save(remembered);
+        }
+      }
+      // Without a signed-in upgrade owner, never assign old secrets to a
+      // future login. That account may belong to someone else on this device.
+      await legacy.delete();
+      await legacy.deleteSession();
+    }
+    _credentialStore = store;
+  }
 
   MoodleAuthService(
       {http.Client? client,
@@ -187,19 +207,20 @@ class MoodleAuthService {
   Future<void> connect(String username, String password,
       {required String campusUrl, required bool remember}) async {
     final revision = ++_sessionRevision;
+    final store = _credentialStore;
     final value = await _authenticate(campusUrl, username, password);
     if (_sessionRevision != revision) {
       throw const MoodleAuthException('La conexión al campus fue cancelada.');
     }
     try {
       if (remember) {
-        await _credentialStore.save(MoodleRememberedAccount(
+        await store.save(MoodleRememberedAccount(
             siteUrl: value.siteUrl,
             userId: value.userId,
             username: username.trim(),
             password: password));
       } else {
-        await _credentialStore.delete();
+        await store.delete();
       }
     } catch (_) {
       throw const MoodleAuthException(
@@ -272,9 +293,11 @@ class MoodleAuthService {
 
   Future<void> disconnect() async {
     signOut();
-    await _credentialStore.delete();
+    final store = _credentialStore;
+    await store.delete();
+    await store.deleteSession();
     if (_sessionRemoval != null) return _sessionRemoval();
-    await DatabaseService.deleteAppSetting(_storedSessionKey);
+    await DatabaseService.removeLegacyMoodleSession();
   }
 
   Future<Map<String, dynamic>> call(String function,
@@ -329,33 +352,49 @@ class MoodleAuthService {
   }
 
   Future<void> persistSession(MoodleSession value) async {
-    _sessionRevision++;
-    session = value;
-    if (_sessionPersistence != null) return _sessionPersistence(value);
-    await DatabaseService.setAppSetting(
-        _storedSessionKey, jsonEncode(value.toJson()));
+    final revision = ++_sessionRevision;
+    final store = _credentialStore;
+    if (_sessionPersistence != null) {
+      await _sessionPersistence(value);
+    } else {
+      await store.saveSession(jsonEncode(value.toJson()));
+    }
+    if (revision == _sessionRevision) session = value;
   }
 
   Future<MoodleSession?> restoreSession() async {
     if (session != null) return session;
-    final raw = await DatabaseService.getAppSetting(_storedSessionKey);
-    // A sign-in may finish while the database read is pending.
-    if (session != null) return session;
-    if (raw == null) return session;
+    final revision = _sessionRevision;
+    final store = _credentialStore;
+    final secure = await store.readSession();
+    if (revision != _sessionRevision) return session;
+    final raw =
+        secure ?? await DatabaseService.getAppSetting(_storedSessionKey);
+    if (revision != _sessionRevision) return session;
+    if (raw == null) return null;
+    late final MoodleSession restored;
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) throw const FormatException();
-      return session = MoodleSession.fromJson(decoded);
-    } catch (_) {
-      await DatabaseService.deleteAppSetting(_storedSessionKey);
-      session = null;
+      restored = MoodleSession.fromJson(decoded);
+    } on FormatException {
+      await store.deleteSession();
+      await DatabaseService.removeLegacyMoodleSession();
       return null;
     }
+    // Keep the legacy value intact if secure storage fails. Never publish a
+    // partially migrated session. Logout/switch invalidates delayed restores.
+    if (secure == null) await store.saveSession(jsonEncode(restored.toJson()));
+    if (revision != _sessionRevision) return session;
+    await DatabaseService.removeLegacyMoodleSession();
+    if (revision != _sessionRevision) return session;
+    return session = restored;
   }
 
   Future<void> forgetPersistedSession() async {
-    session = null;
-    await DatabaseService.deleteAppSetting(_storedSessionKey);
+    signOut();
+    await _credentialStore.deleteSession();
+    await DatabaseService.removeLegacyMoodleSession();
   }
 
   void signOut() {

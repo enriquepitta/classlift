@@ -1,4 +1,6 @@
 // services/database_service.dart
+import 'dart:convert';
+import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/database_models.dart';
@@ -7,8 +9,58 @@ import '../utils/evaluation_parser.dart';
 
 class DatabaseService {
   static Database? _database;
+  static Future<Database>? _opening;
   static const int _databaseVersion = 2;
-  static const String _databaseName = 'classlift.db';
+  static String _databaseName = 'classlift.db';
+  static String? _accountId;
+  static String? get accountId => _accountId;
+
+  /// Only the account already authenticated on upgrade may claim the old file.
+  /// New sign-ins always get an isolated file, never another user's planning.
+  static Future<void> useAccount(String? uid,
+      {bool migrateLegacy = false}) async {
+    final name = uid == null
+        ? 'classlift_signed_out.db'
+        : 'classlift_user_${base64Url.encode(utf8.encode(uid))}.db';
+    if (_databaseName == name) return;
+    await close();
+    final directory = await getDatabasesPath();
+    final target = join(directory, name);
+    final legacy = join(directory, 'classlift.db');
+    if (uid != null &&
+        migrateLegacy &&
+        !await databaseExists(target) &&
+        await databaseExists(legacy)) {
+      // Closing SQLite checkpoints its journal before the atomic file move.
+      final old = await openDatabase(legacy);
+      await old.close();
+      await File(legacy).rename(target);
+    }
+    _databaseName = name;
+    _accountId = uid;
+  }
+
+  static Future<void> deleteAccountData(String uid) async {
+    await useAccount(uid);
+    final db = await database;
+    final path = db.path;
+    // This PRAGMA returns a row even when setting its value. Darwin's native
+    // driver rejects it through execute(), which expects SQLITE_DONE.
+    await db.rawQuery('PRAGMA secure_delete = ON');
+    await clearAllData();
+    await db.execute('VACUUM');
+    await close();
+    await deleteDatabase(path);
+    await useAccount(null);
+  }
+
+  static Future<void> close() async {
+    final pending = _opening;
+    if (pending != null) await pending;
+    await _database?.close();
+    _database = null;
+    _opening = null;
+  }
 
   // Nombres de tablas
   static const String _selectedSubjectsTable = 'selected_subjects';
@@ -19,8 +71,12 @@ class DatabaseService {
 
   static Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+    final opening = _opening ??= _initDatabase();
+    try {
+      return _database = await opening;
+    } finally {
+      if (identical(_opening, opening)) _opening = null;
+    }
   }
 
   static Future<Database> _initDatabase() async {
@@ -184,6 +240,15 @@ class DatabaseService {
     );
   }
 
+  /// Remove a legacy token from SQLite pages as well as from the logical table.
+  static Future<void> removeLegacyMoodleSession() async {
+    final db = await database;
+    await db.rawQuery('PRAGMA secure_delete = ON');
+    final removed = await db.delete(_appSettingsTable,
+        where: 'key = ?', whereArgs: ['moodle_session']);
+    if (removed > 0) await db.execute('VACUUM');
+  }
+
   // CRUD para Materias Seleccionadas
   static Future<int> insertSelectedSubject(SelectedSubject subject) async {
     final db = await database;
@@ -278,15 +343,8 @@ class DatabaseService {
     final db = await database;
 
     await db.transaction((txn) async {
-      // Marcar todas las materias actuales como inactivas
-      await txn.update(_selectedSubjectsTable, {
-        'is_active': 0,
-        'last_updated': DateTime.now().millisecondsSinceEpoch,
-      });
-      await txn.delete(_subjectSchedulesTable);
-      await txn.delete(_subjectEvaluationsTable);
-
-      // Insertar/actualizar las nuevas selecciones
+      // Adding classes preserves every other selection. Re-adding an existing
+      // option refreshes only that option's schedules/evaluations, atomically.
       for (var careerEntry in subjects.entries) {
         final careerCode = careerEntry.key;
         final selectedSubjects = careerEntry.value;
@@ -344,6 +402,14 @@ class DatabaseService {
             await txn.insert(_selectedSubjectsTable, selectedSubject.toMap());
           }
 
+          for (final table in [
+            _subjectSchedulesTable,
+            _subjectEvaluationsTable
+          ]) {
+            await txn.delete(table,
+                where: 'career_code = ? AND subject_code = ?',
+                whereArgs: [careerCode, subjectCode]);
+          }
           final schedules = _extractSchedules(
             subjectName,
             subjectCode: subjectCode,
@@ -492,6 +558,15 @@ class DatabaseService {
 
   static Future<List<UpcomingEvaluation>> getNextUpcomingEvaluations({
     DateTime? from,
+  }) =>
+      _getUpcomingEvaluations(from: from, nearestDateOnly: true);
+
+  static Future<List<UpcomingEvaluation>> getUpcomingEvaluations() =>
+      _getUpcomingEvaluations(nearestDateOnly: false);
+
+  static Future<List<UpcomingEvaluation>> _getUpcomingEvaluations({
+    DateTime? from,
+    required bool nearestDateOnly,
   }) async {
     final db = await database;
     final reference = from ?? DateTime.now();
@@ -519,10 +594,12 @@ class DatabaseService {
         evaluations.evaluation_time ASC
     ''', [startOfDay]);
 
-    if (maps.isEmpty) return [];
-    final firstDate = maps.first['evaluation_date'] as int;
+    if (maps.isEmpty || !nearestDateOnly) {
+      return maps.map(UpcomingEvaluation.fromMap).toList();
+    }
+    final firstDate = maps.first['evaluation_date'];
     return maps
-        .where((map) => map['evaluation_date'] as int == firstDate)
+        .takeWhile((map) => map['evaluation_date'] == firstDate)
         .map(UpcomingEvaluation.fromMap)
         .toList();
   }

@@ -3,6 +3,46 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets(
+      'deletion requires confirmation and privacy opens without leaving the account',
+      (tester) async {
+    var deletions = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: HomeProfileHeader(
+      subtitle: 'Tu planificación',
+      signingOut: false,
+      onSignOut: () async => fail('Must not sign out'),
+      onDeleteAccount: () async {
+        deletions++;
+      },
+    ))));
+    await tester.tap(find.byTooltip('Mi perfil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Política de privacidad'));
+    await tester.pumpAndSettle();
+    expect(find.text('Privacidad'), findsOneWidget);
+    expect(find.textContaining('Conservación y eliminación'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Mi perfil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eliminar cuenta'));
+    await tester.pumpAndSettle();
+    expect(deletions, 0);
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(deletions, 0);
+    await tester.tap(find.byTooltip('Mi perfil'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eliminar cuenta'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eliminar mi cuenta'));
+    await tester.pumpAndSettle();
+    expect(deletions, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Profile shows account and invokes sign out only when selected',
       (tester) async {
     var signOutCalls = 0;

@@ -1,0 +1,126 @@
+ClassLift — pruebas iOS del 23 de noviembre de 2026
+
+Entorno
+- Xcode Beta local; iPhone de Enrique, iPhone 17 Pro Max con iOS 27.3.
+- Bundle com.pitta.classlift. Compilación Release con firma de desarrollo.
+- Versión corregida 1.0.0 (2026112301), 37,5 MB. Firma y perfil para este iPhone
+  verificados; nombre del sistema/OAuth unificado como ClassLift en Info.plist.
+- Instalación y lanzamiento de la corrección confirmados por el instalador nativo
+  de RoamRun; en la reanudación, lanzamiento y vista verificados con CoreDevice
+  y Device Hub.
+- No se publicó en TestFlight/App Store ni se desplegó un backend.
+- Archive y exportación Ad Hoc también completados. IPA de respaldo:
+  build/ios/ipa/ClassLift.ipa (14.398.027 bytes), versión 1.0.0 (2026112301).
+  Firma de distribución, get-task-allow=false, bundle, perfil vigente e inclusión
+  de este iPhone comprobados. No confundir con classify.ipa de una build anterior.
+
+Comprobaciones iniciales en el iPhone
+- Actualización conserva la sesión Firebase existente.
+- Migración de SQLite de la instalación anterior: 9 materias, 13 horarios y
+  54 evaluaciones preservados; comparación exacta de filas mediante SHA-256.
+- Inicio, Tareas sin conexión Moodle, perfil, privacidad y regreso funcionan.
+- Confirmación de eliminar cuenta y su botón Cancelar funcionan.
+- Catálogo remoto: período, plan 2026, carrera Informática, semestre y opciones
+  de materias cargan; regreso a Inicio sin guardar selecciones comprobado.
+- Campus Moodle de producción: HTTPS validado y página pública HTTP 200 desde
+  esta Mac. Esto no verifica el acceso autenticado ni la API móvil de una cuenta.
+- El usuario autorizó expresamente probar el borrado con la cuenta actual.
+
+Fallo encontrado durante estas pruebas
+Cerrar sesión fallaba en iOS y mostraba el aviso de reintento sin borrar datos.
+La operación PRAGMA secure_delete = ON devuelve una fila. El adaptador Darwin
+de sqflite la rechazaba al ejecutarla con execute(), que espera SQLITE_DONE.
+Se cambió a rawQuery() en la limpieza del token legado y el borrado de cuenta.
+Las pruebas SQLite FFI no detectaban esa diferencia del controlador nativo.
+
+Regresión automatizada
+- Suite completa final: 123 pruebas pasan, 1 omitida por un Excel de ejemplo
+  ausente en la ruta local que usa ese test.
+- 18 pruebas específicas de almacenamiento, cuentas y sincronización: pasan.
+- Análisis de database_service.dart y la nueva prueba nativa: sin incidencias.
+- integration_test/native_account_storage_test.dart usa SQLite y Keychain reales
+  con dos cuentas locales ficticias y comprueba migración de secretos,
+  desconexión sin perder materias y borrado aislado de una cuenta.
+  Resultado: 2 pruebas pasan en iPhone 18 Pro simulado (iOS 27.0).
+
+Verificaciones pendientes
+- Apple completo y revocación; Moodle con credenciales reales.
+- Distribución mediante TestFlight y metadatos de App Store.
+- Correo de soporte y URL pública de privacidad, que el usuario creará después.
+
+Recuperación de conexión
+La corrección se instaló con el instalador nativo de RoamRun (15b927c8, 588 s).
+La sesión de Xcode perdió conexión durante esa transferencia. Tras reconectar
+Tailscale y mantener el iPhone en Wi-Fi y despierto, se recuperó el puente.
+
+Los respaldos de comparación se mantuvieron fuera del repositorio en un
+directorio temporal privado; no se incorporaron credenciales ni datos personales.
+
+Reanudación de la prueba física
+- Tras reconectar Tailscale, el puente recuperó conexión Wi-Fi y CoreDevice
+  confirmó el iPhone desbloqueado. Se recuperó la vista de ClassLift.
+- Cierre de sesión en 1.0.0 (2026112301): correcto, vuelve al ingreso sin error.
+- Copia de SQLite posterior al cierre exitoso comparada con la anterior a la
+  actualización: 9 materias, 13 horarios, 54 evaluaciones y 0 notas; todas las
+  filas coinciden exactamente. La planificación se conserva.
+- El aviso nativo de Google muestra el nombre correcto ClassLift.
+- Ingreso real de Google con la cuenta original: correcto, vuelve a Inicio y
+  muestra la planificación conservada.
+- Eliminación real autorizada: confirmación de la app, reautenticación Google
+  con la misma identidad y retorno al ingreso sin error. El código sólo borra
+  SQLite después de completar user.delete() en Firebase. Consulta administrativa
+  independiente posterior, limitada al UID eliminado en el proyecto claift:
+  accounts:lookup devolvió HTTP 200 y cero cuentas coincidentes. No se recreó.
+- Inspección del contenedor después del borrado: no queda ninguna base de
+  planificación ClassLift; sólo los tres archivos Cache.db del sistema web.
+- Reinicio completo mediante --terminate-existing: vuelve al ingreso, sin sesión.
+- Inicio de Apple: presenta la hoja nativa con el nombre correcto ClassLift,
+  pero termina en el aviso de proveedor no habilitado (operation-not-allowed).
+- Consulta administrativa de sólo lectura a apple.com en el proyecto real claift:
+  HTTP 404 CONFIGURATION_NOT_FOUND. El proveedor no está configurado.
+- El usuario confirmó que todavía no creó la clave Sign in with Apple.
+  No se habilitó un proveedor incompleto: falta configurar también la revocación.
+- Se corrigieron metadatos iOS obsoletos en firebase.json y firebase_options.dart
+  para coincidir con GoogleService-Info.plist (claift/com.pitta.classlift).
+  La app sigue inicializando Firebase nativamente, por lo que esto no cambia la
+  configuración de la compilación ya instalada. Analizador y comparación pasan.
+
+
+Configuración Apple completada con autorización expresa
+- Se creó la clave ClassLift Sign in with Apple, Key ID Q46597U597, sólo con
+  Sign in with Apple para el App ID 8ZP4PTLTTP.com.pitta.classlift.
+- Se descargó y movió fuera del repositorio a
+  ~/Library/Application Support/ClassLift/credentials/AuthKey_Q46597U597.p8.
+  Directorio 0700 y archivo 0600. Nunca se imprimió ni incluyó en el repositorio.
+- Services ID: com.pitta.classlift.signin, descripción ClassLift Firebase
+  Authentication. Asociado al mismo App ID, dominio claift.firebaseapp.com y
+  retorno https://claift.firebaseapp.com/__/auth/handler.
+- Se creó el proveedor apple.com en Firebase claift con enabled=true,
+  clientId=com.pitta.classlift.signin, bundleIds=[com.pitta.classlift] y la
+  configuración de code flow (equipo, Key ID y clave privada autorizada).
+- API administrativa: creación HTTP 200; lectura posterior HTTP 200 confirma
+  enabled, clientId, bundleIds, equipo y Key ID correctos y clave presente.
+- Esta sí es una modificación de Authentication en el backend, autorizada
+  expresamente por el usuario; no se desplegaron funciones ni se publicó la app.
+- El usuario completó Face ID. Ingreso Apple corregido: correcto, llega a Inicio
+  con cuenta vacía y correo de relay privado; no hereda planificación de Google.
+- Consulta administrativa limitada al nuevo UID: HTTP 200, una cuenta con
+  proveedor apple.com. SQLite usa un archivo separado para ese UID.
+- El usuario autorizó expresamente borrar la nueva cuenta Apple vacía. Se pulsó
+  Eliminar mi cuenta y apareció la reautenticación nativa. Se solicitó completar
+  Iniciar sesión/Face ID; sigue pendiente verificar revocación y borrado.
+  Consulta administrativa a las 16:48: la cuenta Apple todavía existe.
+- Verificación final a las 17:04: accounts:lookup para ese mismo UID devuelve
+  HTTP 200 y cero cuentas. El borrado Apple autorizado se completó después de
+  la reautenticación. El flujo exige que revokeTokenWithAuthorizationCode termine
+  correctamente antes de user.delete(); no se inspeccionó por separado el panel
+  de autorizaciones del Apple ID.
+- CoreDevice confirmó el iPhone desbloqueado. Inspección posterior del contenedor:
+  no queda ninguna base de planificación ClassLift, sólo tres archivos Cache.db
+  del sistema web. Reinicio con --terminate-existing y captura visual confirman
+  la pantalla de ingreso sin sesión. Prueba de borrado Apple aprobada.
+- La hoja nativa dice «Iniciar sesión» también durante la reautenticación para
+  borrar: verifica la identidad antes de revocar el acceso de ClassLift; no borra
+  el Apple ID. Se aclaró este texto al usuario durante la prueba.
+Fuente del requisito de revocación:
+https://firebase.google.com/docs/auth/ios/apple#token_revocation

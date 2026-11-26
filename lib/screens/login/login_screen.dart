@@ -4,6 +4,7 @@ import 'controller/login_controller.dart';
 import 'widgets/login_background.dart';
 import 'widgets/login_title.dart';
 import 'widgets/bottom_navigation.dart';
+import '../privacy_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -86,7 +87,11 @@ class _LoginScreenState extends State<LoginScreen>
                                     fontSize: 12,
                                     height: 1.6),
                               ),
-                              SizedBox(height: compact ? 24 : 40),
+                              TextButton(
+                                onPressed: () => PrivacyScreen.open(context),
+                                child: const Text('Política de privacidad'),
+                              ),
+                              SizedBox(height: compact ? 12 : 24),
                             ],
                           ),
                         ),

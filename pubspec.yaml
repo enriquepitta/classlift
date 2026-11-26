@@ -45,7 +45,6 @@ dependencies:
   sqflite: ^2.0.0+3
   path: ^1.8.0
   provider: ^6.0.5
-  flutter_keyboard_visibility: ^5.4.1
   cupertino_icons: ^1.0.8
   wolt_modal_sheet: ^0.10.0
   go_router: ^13.2.2
@@ -56,8 +55,11 @@ dependencies:
   flutter_secure_storage: ^10.0.0
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
+  sqflite_common_ffi: ^2.4.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -80,7 +82,7 @@ flutter:
     - assets/icons/
     - assets/images/poliplanner_image.svg
     - assets/images/classlift_home_background.png
-    - assets/lottie/classify_splash.json
+    - assets/images/classlift_splash.png
     - assets/lottie/spinner_lottie.json
     - assets/lottie/spinner_lottie_2.json
     - assets/lottie/spinner_3.json
@@ -91,7 +93,6 @@ flutter:
     - assets/lottie/successful_green.json
     - assets/lottie/successful_blue.json
     - assets/lottie/success_man.json
-    - assets/lottie/classlift_splash.json
     - assets/lottie/checkbox_lottie.json
   fonts:
     - family: AnekLatin

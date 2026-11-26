@@ -58,11 +58,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDxoVRiCqUjCatoUUHPA92i458NkeWyYUA',
-    appId: '1:790754849404:ios:e77e288039fc3e30414ff9',
-    messagingSenderId: '790754849404',
-    projectId: 'classify-bc72a',
-    storageBucket: 'classify-bc72a.firebasestorage.app',
-    iosBundleId: 'com.example.classify',
+    apiKey: 'AIzaSyAiwmV4rgkAeDwIIDzGhiXh91qMlk0duIo',
+    appId: '1:194972210751:ios:c13b3f8efdf3b5a2c60a8a',
+    messagingSenderId: '194972210751',
+    projectId: 'claift',
+    storageBucket: 'claift.firebasestorage.app',
+    iosClientId: '194972210751-eb0ubaoqtq7bhckidf16ftvvqp9dqrnh.apps.googleusercontent.com',
+    iosBundleId: 'com.pitta.classlift',
   );
 }

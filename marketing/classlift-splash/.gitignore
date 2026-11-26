@@ -1,0 +1,8 @@
+node_modules/
+.hyperframes/
+.thumbnails/
+renders/
+snapshots/
+*.log
+catalog-logo.json
+check-result.json

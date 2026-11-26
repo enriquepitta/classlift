@@ -1,0 +1,55 @@
+<!-- ClassLift composition. Real UI captured from Flutter; fixtures are fictional. -->
+<template>
+<style>@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-Regular.ttf');font-weight:400}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-SemiBold.ttf');font-weight:600}
+@font-face{font-family:Poppins;src:url('assets/fonts/Poppins-ExtraBold.ttf');font-weight:800}
+*{box-sizing:border-box}#root{position:absolute;inset:0;overflow:hidden;font-family:Poppins;color:#333D86}
+.stage{position:absolute;inset:0}.title{position:absolute;left:145px;top:326px;width:650px;margin:0;font-size:84px;line-height:1.12;font-weight:800;letter-spacing:-4px}
+.note{position:absolute;left:145px;top:1195px;font-size:28px;font-weight:400;line-height:1.3;margin:0;color:#495780}
+.decoration{position:absolute;pointer-events:none}.rule{left:145px;top:275px;width:80px;height:9px;background:#333D86}
+.screen{position:absolute;left:145px;top:570px;width:630px;height:600px;overflow:hidden;border-radius:28px;box-shadow:0 22px 52px #28366520;background:#fff}
+.screen img{position:absolute;left:0;top:0;width:630px;height:auto;transform-origin:0 0}
+.tap{position:absolute;width:70px;height:70px;border:5px solid #FF6F61;border-radius:50%;opacity:0}
+
+
+#root{background:#FFE9E4}.nc-stripe{left:-90px;top:1440px;width:1280px;height:150px;background:#FF6F61;transform:rotate(-12deg)}
+.nc-hot{color:#AE302C}.nc-banner{position:absolute;left:145px;top:800px;width:630px;height:200px;background:#fff;border-radius:28px;box-shadow:0 16px 30px #9F453319;padding:30px 24px 20px 108px}
+.nc-symbol{position:absolute;left:25px;top:34px;width:60px;height:60px;background:#DDF8EC;color:#27745A;border-radius:18px;font-size:38px;font-weight:800;text-align:center;line-height:60px}
+.nc-sheet{background:#E6EAFC;color:#333D86;font-size:38px;line-height:58px}.nc-campus{background:#FFE9E4;color:#AE302C;line-height:60px}
+.nc-label{font-size:29px;line-height:1.4;font-weight:600;color:#58617A}.nc-message{margin-top:6px;font-size:36px;line-height:1.28;font-weight:600;letter-spacing:-.8px}
+#nc-banner2{top:810px;height:165px}#nc-banner3{top:1000px;height:165px}
+</style>
+<div id="root" data-composition-id="notification-cascade" data-width="1080" data-height="1920">
+  <div id="notification-cascade-stage" class="clip stage" data-start="0" data-duration="6" data-track-index="0">
+  
+<div class="decoration nc-stripe" aria-hidden="true" data-layout-allow-overflow></div>
+<div class="decoration rule" aria-hidden="true"></div>
+<h1 id="nc-hook" class="title"><span data-var-text="hook">¿Eso era</span><br>para <span class="nc-hot">HOY?</span></h1>
+<h1 id="nc-tension" class="title">Todo en<br>distintos lados.</h1>
+<div id="nc-banner1" class="nc-banner" data-layout-allow-overlap>
+  <div class="nc-symbol">…</div><div class="nc-label">Grupo de clase</div>
+  <div class="nc-message">¿Ya entregaste<br>el trabajo?</div>
+</div>
+<div id="nc-banner2" class="nc-banner"><div class="nc-symbol nc-sheet">▦</div><div class="nc-label">El archivo del horario</div><div class="nc-message">¿Qué clase toca?</div></div>
+<div id="nc-banner3" class="nc-banner"><div class="nc-symbol nc-campus">!</div><div class="nc-label">El campus virtual</div><div class="nc-message">¿Cuándo se entrega?</div></div>
+
+  </div>
+</div>
+<script>
+(function(){
+  const tl = gsap.timeline({paused:true});
+  
+tl.fromTo('#nc-hook',{scale:1.025},{scale:1,duration:.4,ease:'power3.out'},0);
+tl.fromTo('#nc-banner1',{x:760,rotation:5},{x:0,rotation:0,duration:.6,ease:'expo.out'},.55);
+tl.fromTo('#nc-tension',{x:1100,opacity:0},{x:0,opacity:1,duration:.5,ease:'power3.out'},3);
+tl.to('#nc-hook',{x:-1100,opacity:0,duration:.45,ease:'power3.in'},2.8);
+tl.to('#nc-banner1',{y:-210,duration:.55,ease:'expo.out'},3.05);
+tl.fromTo('#nc-banner2',{x:1100,opacity:0},{x:0,opacity:1,duration:.55,ease:'expo.out'},3.2);
+tl.fromTo('#nc-banner3',{x:1100,opacity:0},{x:0,opacity:1,duration:.55,ease:'expo.out'},3.6);
+tl.to(['#nc-banner1','#nc-banner2','#nc-banner3'],{x:-1100,duration:.35,stagger:.04,ease:'power3.in'},5.5);
+
+  window.__timelines=window.__timelines||{};
+  window.__timelines['notification-cascade']=tl;
+})();
+</script>
+</template>

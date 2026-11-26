@@ -1,0 +1,34 @@
+ClassLift — distribución Android
+
+Entorno fijado: Gradle 8.14, Android Gradle Plugin 8.11.1, Kotlin 2.2.20.
+Usar JDK 17 o 21. El script selecciona el JDK de forma local al proceso:
+
+  bash tool/android_gradle.sh bundleRelease
+
+Si hace falta, indicar CLASSLIFT_JAVA_HOME con la ruta del JDK. No modifica la
+configuración global de Flutter ni utiliza el Java 25 incompatible del entorno.
+Para verificar sólo la configuración: bash tool/android_gradle.sh help
+
+Firma
+Crear android/key.properties con la clave de carga de ESTA app, conservada fuera
+del repositorio. No reutilizar claves de otra aplicación. El formato es:
+
+  storeFile=/ruta/privada/classlift-upload.jks
+  storePassword=<contraseña>
+  keyAlias=<alias>
+  keyPassword=<contraseña>
+
+key.properties y los almacenes de claves están excluidos de Git. La compilación
+release falla explícitamente si falta configuración; ya no utiliza firma debug.
+No se ha creado una clave nueva ni firmado/publicado una entrega Android.
+
+Antes de distribuir
+- Registrar en Firebase las huellas SHA-1/SHA-256 de la firma que Google Play use.
+- Descargar la configuración de com.pitta.classlift con los clientes OAuth de
+  Android y web habilitados. La copia actual no tiene clientes OAuth.
+- Generar el AAB y verificar ingreso Google/Apple y borrado en la pista interna.
+- Publicar la política y el recurso web de solicitud de eliminación de cuenta.
+
+Compatibilidad consultada:
+https://developer.android.com/build/releases/agp-8-11-0-release-notes
+https://docs.gradle.org/current/userguide/compatibility.html

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="tile" x1="12" y1="0" x2="112" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#82BBFF"/>
+      <stop offset="0.48" stop-color="#4F94F4"/>
+      <stop offset="1" stop-color="#2E65DA"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="16" y1="0" x2="112" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="page" x1="70" y1="43" x2="94" y2="91" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#D1E7FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="126" height="126" rx="34" fill="url(#tile)"/>
+  <path d="M2 60V35C2 16.8 16.8 2 35 2H93C111.2 2 126 16.8 126 35V46C88 24 54 75 2 60Z" fill="#FFFFFF" opacity="0.09"/>
+  <rect x="1" y="1" width="126" height="126" rx="34" fill="none" stroke="url(#edge)" stroke-width="1.5"/>
+  <path d="M26 48C37 47 47 50 58 57V96C47 88 38 84 26 84V48Z" fill="#FFFFFF" opacity="0.94"/>
+  <path d="M70 57C81 50 91 47 102 48V84C90 84 81 88 70 96V57Z" fill="url(#page)"/>
+  <path d="M64 66V28M51 41L64 28L77 41" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M34 97C45 98 54 101 64 107C74 101 83 98 94 97" fill="none" stroke="#BCDFFF" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+</svg>
